@@ -1,0 +1,980 @@
+{% extends "base.html" %}
+
+{% block title %}Fees Structure — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item active">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="25" y="65" width="110" height="14" rx="4" fill="#E8D5FF" opacity="0.8" />
+          <rect x="35" y="48" width="90" height="14" rx="4" fill="#C084FC" opacity="0.6" />
+          <rect x="45" y="32" width="70" height="14" rx="4" fill="#9333EA" opacity="0.4" />
+          <path d="M72 18L80 12L88 18V24H72V18Z" fill="#7E22CE" />
+          <path d="M80 8V12M80 8L74 10M80 8L86 10" stroke="#7E22CE" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-left"></i>
+        <span>Sign Out</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <div class="dash-main">
+
+    <!-- TOPBAR -->
+    <header class="dash-topbar">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="globalFeesSearch" class="dash-search-input"
+          placeholder="Search student by name or roll number..." aria-label="Search" onkeyup="filterStudentsTable()">
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar">
+          {{ teacher['full_name'][0] | upper }}
+        </div>
+        <div class="dash-user-meta">
+          <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+          <p class="dash-user-role">{{ teacher['email'] }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content">
+
+      <!-- Flash Messages Container -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show mb-4" role="alert">
+        <div>
+          {% if category == 'danger' %}
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% elif category == 'success' %}
+          <i class="bi bi-check-circle-fill me-2"></i>
+          {% elif category == 'warning' %}
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill me-2"></i>
+          {% endif %}
+          {{ message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card mb-4" aria-label="Overview Banner">
+        <div class="dash-breadcrumb">
+          <i class="bi bi-house-door-fill"></i> Dashboard &gt; Fees Structure
+        </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <h1 class="dash-hero-title">Fees Structure &amp; Status</h1>
+            <p class="dash-hero-subtitle">
+              Configure fee categories, upload payment QR codes, and track real-time student payment records.
+            </p>
+          </div>
+
+          <!-- SESSION & CLASS SELECTION CONTROLS -->
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
+              <label for="class_switcher" class="small fw-bold text-dark mb-0">
+                <i class="bi bi-mortarboard text-purple-dark"></i> Class:
+              </label>
+              {% if classes %}
+              <select id="class_switcher" class="form-select form-select-sm border-0 fw-semibold text-purple-dark"
+                style="width: auto; background-color: transparent;" onchange="onClassOrSessionChange()">
+                {% for c in classes %}
+                <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{% endif
+                  %}>
+                  {{ c['name'] }}
+                </option>
+                {% endfor %}
+              </select>
+              {% else %}
+              <span class="text-muted small">No Classes</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
+              <label for="session_switcher" class="small fw-bold text-dark mb-0">
+                <i class="bi bi-calendar3 text-purple-dark"></i> Session:
+              </label>
+              <select id="session_switcher" class="form-select form-select-sm border-0 fw-semibold text-purple-dark"
+                style="width: auto; background-color: transparent;" onchange="onClassOrSessionChange()">
+                {% for s in academic_sessions %}
+                <option value="{{ s }}" {% if selected_session==s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            Transparency &bull; Timely Fees &bull; Trust &hearts;
+          </div>
+        </div>
+      </section>
+
+      <!-- TWO-COLUMN GRID: FEE STRUCTURE (LEFT) & QR SCANNER (RIGHT) -->
+      <div class="dash-grid-top mb-4">
+
+        <!-- LEFT CARD: FEE STRUCTURE (SET BY TEACHER) -->
+        <div class="dash-box-card">
+          <div class="dash-box-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+                <i class="bi bi-currency-rupee"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title">Fee Structure (Set by Teacher)</h2>
+                <p class="dash-box-subtitle">
+                  {{ selected_class['name'] if selected_class else 'Select Class' }} &bull; Session {{ selected_session
+                  }}
+                </p>
+              </div>
+            </div>
+
+            {% if selected_class %}
+            <button type="button" class="btn-primary-purple py-1 px-3" data-bs-toggle="modal"
+              data-bs-target="#addFeeModal" style="width: auto;">
+              <i class="bi bi-plus-circle me-1"></i> Add Fee
+            </button>
+            {% endif %}
+          </div>
+
+          <!-- INLINE FEE ENTRIES LIST -->
+          <div class="mt-3">
+            {% if not selected_class %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+              Please select or create a class to manage its fee structure.
+            </div>
+            {% elif fee_structures %}
+            <div class="table-responsive">
+              <table class="dash-table">
+                <thead>
+                  <tr>
+                    <th>Fee Title</th>
+                    <th>Amount (₹)</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for fee in fee_structures %}
+                  <tr id="fee-row-{{ fee['id'] }}">
+                    <td>
+                      <span class="fw-semibold text-dark">{{ fee['fee_title'] }}</span>
+                    </td>
+                    <td>
+                      <span class="fw-bold font-monospace text-purple-dark">₹{{ "{:,.2f}".format(fee['amount'])
+                        }}</span>
+                    </td>
+                    <td class="text-end">
+                      <div class="d-inline-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2"
+                          onclick="openEditFeeModal({{ fee['id'] }}, '{{ fee['fee_title']|escape }}', {{ fee['amount'] }})"
+                          title="Edit Fee">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2"
+                          onclick="confirmDeleteFee({{ fee['id'] }}, '{{ fee['fee_title']|escape }}')"
+                          title="Delete Fee">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- TOTAL FEES SUMMARY FOOTER -->
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top px-2">
+              <span class="text-muted fw-semibold">Total Fee Structure:</span>
+              <span class="fs-5 fw-bold font-monospace" style="color: var(--primary-purple);">
+                ₹{{ "{:,.2f}".format(total_fees) }}
+              </span>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-cash-stack fs-3 d-block mb-2" style="color: #b8a7ea;"></i>
+              <p class="mb-2 fw-medium">No fee structure set for this class yet.</p>
+              <button type="button" class="btn-secondary-purple py-1 px-3" data-bs-toggle="modal"
+                data-bs-target="#addFeeModal" style="width: auto;">
+                <i class="bi bi-plus-circle me-1"></i> Add Fee Entry
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- RIGHT CARD: QR SCANNER -->
+        <div class="dash-box-card">
+          <div class="dash-box-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+              <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+                <i class="bi bi-qr-code-scan"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title">QR Scanner</h2>
+                <p class="dash-box-subtitle">Payment QR code displayed for student payments</p>
+              </div>
+            </div>
+
+            <!-- ADD / DELETE BUTTONS AT TOP RIGHT -->
+            <div class="d-flex gap-2">
+              <button type="button" class="btn-primary-purple py-1 px-3" data-bs-toggle="modal"
+                data-bs-target="#uploadQrModal" style="width: auto;" title="Upload or update payment QR code">
+                <i class="bi bi-plus-circle me-1"></i> Add
+              </button>
+
+              {% if qr_code %}
+              <button type="button" class="btn btn-sm btn-outline-danger py-1 px-3"
+                onclick="confirmDeleteQr({{ qr_code['id'] }})" title="Remove current QR code">
+                <i class="bi bi-trash me-1"></i> Delete
+              </button>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- QR SCANNER DISPLAY AREA -->
+          <div class="mt-3">
+            {% if qr_code %}
+            <div class="text-center p-3 rounded-4"
+              style="background: #faf8ff; border: 2px dashed #b8a7ea; min-height: 230px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <div class="p-2 bg-white rounded-3 shadow-sm mb-2" style="border: 1px solid #ece7f8;">
+                <img src="{{ url_for('get_qr_image', qr_id=qr_code['id']) }}" alt="Payment QR Code"
+                  style="max-height: 180px; max-width: 100%; object-fit: contain; border-radius: 8px;">
+              </div>
+              <div class="text-muted small mt-1">
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                  <i class="bi bi-shield-check me-1"></i> Verified QR Code
+                </span>
+                {% if qr_code['qr_data'] %}
+                <div class="text-truncate text-secondary font-monospace mt-1"
+                  style="max-width: 290px; font-size: 0.78rem;" title="{{ qr_code['qr_data'] }}">
+                  {{ qr_code['qr_data'] }}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% else %}
+            <div class="text-center p-4 rounded-4"
+              style="background: #faf8ff; border: 2px dashed #d1c8ef; min-height: 230px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+              <i class="bi bi-qr-code-scan" style="font-size: 3.5rem; color: #b8a7ea; opacity: 0.6;"></i>
+              <h5 class="fw-semibold text-dark mt-2 mb-1">No QR Code Added</h5>
+              <p class="text-muted small mb-3" style="max-width: 270px;">
+                Upload a payment QR code image (PNG, JPG, JPEG) to display it for students.
+              </p>
+              <button type="button" class="btn-secondary-purple py-1 px-3" data-bs-toggle="modal"
+                data-bs-target="#uploadQrModal" style="width: auto;">
+                <i class="bi bi-upload me-1"></i> Upload QR Code
+              </button>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+
+      <!-- FULL-WIDTH CARD: STUDENTS FEE STATUS -->
+      <section class="dash-box-card" id="studentsFeeStatusSection">
+        <div class="dash-box-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Students Fee Status</h2>
+              <p class="dash-box-subtitle">
+                Real student records &bull; Class: <strong>{{ selected_class['name'] if selected_class else 'None'
+                  }}</strong>
+                &bull; Session: <strong>{{ selected_session }}</strong>
+              </p>
+            </div>
+          </div>
+
+          <!-- TOP-RIGHT CONTROLS: FEE FILTER & SESSION SELECTOR -->
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="d-flex align-items-center gap-1 bg-light px-2 py-1 rounded border">
+              <label for="fee_filter_select" class="small fw-semibold text-muted mb-0">Fee:</label>
+              <select id="fee_filter_select" class="form-select form-select-sm border-0 bg-transparent fw-medium"
+                onchange="onFeeFilterChange(this.value)">
+                <option value="" {% if not selected_fee_id %}selected{% endif %}>All Fees (Combined)</option>
+                {% for fee in fee_structures %}
+                <option value="{{ fee['id'] }}" {% if selected_fee_id==fee['id'] %}selected{% endif %}>
+                  {{ fee['fee_title'] }} (₹{{ "{:,.2f}".format(fee['amount']) }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- SUMMARY STAT BADGES -->
+            <div class="d-flex flex-wrap gap-2">
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                Paid: {{ paid_students }}
+              </span>
+              <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+                Pending: {{ pending_students }}
+              </span>
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                Rejected: {{ rejected_students }}
+              </span>
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                Not Paid: {{ not_paid_students }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STUDENTS FEE TABLE -->
+        <div class="table-responsive mt-3">
+          {% if not selected_class %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-mortarboard fs-2 d-block mb-2"></i>
+            Select a class above to view enrolled students.
+          </div>
+          {% elif not students_fee_status %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+            No students found enrolled in <strong>{{ selected_class['name'] }}</strong>.
+          </div>
+          {% else %}
+          <table class="dash-table" id="studentsFeeTable">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th style="width: 130px;">Roll No.</th>
+                <th>Student Name</th>
+                <th>Transaction ID</th>
+                <th>Paid Amount (₹)</th>
+                <th>Payment Status</th>
+                <th>Payment Date</th>
+                <th class="text-end" style="width: 170px;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students_fee_status %}
+              <tr class="student-fee-row" data-name="{{ s['student_name']|lower }}"
+                data-roll="{{ s['roll_number']|lower }}">
+                <td>{{ s['index'] }}</td>
+                <td>
+                  <span class="font-monospace text-secondary fw-semibold">{{ s['roll_number'] or 'Not Assigned Yet' }}</span>
+                </td>
+                <td>
+                  <strong class="text-navy-dark">{{ s['student_name'] }}</strong>
+                </td>
+                <td>
+                  {% if s['transaction_ref'] %}
+                  <div>
+                    <span class="badge bg-light text-dark border font-monospace px-2 py-1" style="font-size: 0.85rem;"
+                      title="{{ s['transaction_ref'] }}">
+                      <i class="bi bi-receipt me-1 text-purple"></i>{{ s['transaction_ref'] }}
+                    </span>
+                    {% if s['submitted_at'] %}
+                    <div class="text-muted" style="font-size: 0.72rem;">
+                      <i class="bi bi-clock me-1"></i>{{ s['submitted_at'] }}
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% else %}
+                  <span class="text-muted small">-</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span
+                    class="font-monospace fw-bold {% if s['paid_amount'] > 0 %}text-success{% else %}text-muted{% endif %}">
+                    ₹{{ "{:,.2f}".format(s['paid_amount']) }}
+                  </span>
+                </td>
+                <td>
+                  {% if s['payment_status'] == 'Paid' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="bi bi-check-circle-fill me-1"></i> Paid
+                  </span>
+                  {% elif s['payment_status'] == 'Pending' %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+                    <i class="bi bi-clock-history me-1"></i> Pending
+                  </span>
+                  {% elif s['payment_status'] == 'Rejected' %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1"
+                    title="{{ s['rejection_reason'] or '' }}">
+                    <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                  </span>
+                  {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">
+                    <i class="bi bi-dash-circle me-1"></i> Not Paid
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="text-muted small">
+                    {{ s['payment_date'] if s['payment_date'] else '-' }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  {% if s['payment_status'] == 'Pending' and s['payment_id'] %}
+                  <div class="d-inline-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-success py-0 px-2"
+                      onclick="openVerifyPaymentModal({{ s['payment_id'] }}, '{{ s['student_name']|escape }}', '{{ s['roll_number']|escape }}', '{{ s['transaction_ref']|escape }}', {{ s['paid_amount'] or s['total_fee'] }})"
+                      title="Verify Payment">
+                      <i class="bi bi-check-lg me-1"></i> Verify
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2"
+                      onclick="openRejectPaymentModal({{ s['payment_id'] }}, '{{ s['student_name']|escape }}', '{{ s['roll_number']|escape }}', '{{ s['transaction_ref']|escape }}')"
+                      title="Reject Payment">
+                      <i class="bi bi-x-lg me-1"></i> Reject
+                    </button>
+                  </div>
+                  {% elif fee_structures %}
+                  <button type="button" class="btn btn-sm btn-outline-purple py-0 px-2"
+                    onclick="openRecordPaymentModal({{ s['student_id'] }}, '{{ s['student_name']|escape }}', '{{ s['roll_number']|escape }}', {{ s['paid_amount'] }}, '{{ s['payment_status'] }}', '{{ s['payment_date'] }}', '{{ s['transaction_ref']|escape }}')"
+                    title="Record or update payment">
+                    <i class="bi bi-pencil-square me-1"></i> Record
+                  </button>
+                  {% else %}
+                  <span class="text-muted small">Set fee first</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% endif %}
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODALS                                                   -->
+<!-- ======================================================== -->
+
+<!-- MODAL: ADD FEE -->
+<div class="modal fade" id="addFeeModal" tabindex="-1" aria-labelledby="addFeeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="addFeeModalLabel">
+          <i class="bi bi-currency-rupee text-purple-dark me-2"></i>Add Fee Structure Entry
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_fee_route') }}">
+        <input type="hidden" name="class_id" value="{{ selected_class['id'] if selected_class else '' }}">
+        <input type="hidden" name="academic_session" value="{{ selected_session }}">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Add a fee category for <strong>{{ selected_class['name'] if selected_class else 'Selected Class' }}</strong>
+            (Session: {{ selected_session }}).
+          </p>
+
+          <div class="form-group-custom mb-3">
+            <label for="fee_title_input" class="fw-semibold mb-1 small text-dark">Fee Title *</label>
+            <div class="input-with-icon">
+              <i class="bi bi-tag input-icon-left"></i>
+              <input type="text" id="fee_title_input" name="fee_title" class="custom-input"
+                placeholder="e.g. Tuition Fees, Exam Fees, Library Fees" required autofocus>
+            </div>
+          </div>
+
+          <div class="form-group-custom mb-2">
+            <label for="fee_amount_input" class="fw-semibold mb-1 small text-dark">Amount (₹) *</label>
+            <div class="input-with-icon">
+              <i class="bi bi-currency-rupee input-icon-left"></i>
+              <input type="number" step="0.01" min="0" id="fee_amount_input" name="amount" class="custom-input"
+                placeholder="e.g. 5000" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Set Fee
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT FEE -->
+<div class="modal fade" id="editFeeModal" tabindex="-1" aria-labelledby="editFeeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="editFeeModalLabel">
+          <i class="bi bi-pencil-square text-purple-dark me-2"></i>Edit Fee Entry
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editFeeForm" method="POST" action="">
+        <div class="modal-body">
+          <div class="form-group-custom mb-3">
+            <label for="edit_fee_title" class="fw-semibold mb-1 small text-dark">Fee Title *</label>
+            <div class="input-with-icon">
+              <i class="bi bi-tag input-icon-left"></i>
+              <input type="text" id="edit_fee_title" name="fee_title" class="custom-input" required>
+            </div>
+          </div>
+
+          <div class="form-group-custom mb-2">
+            <label for="edit_fee_amount" class="fw-semibold mb-1 small text-dark">Amount (₹) *</label>
+            <div class="input-with-icon">
+              <i class="bi bi-currency-rupee input-icon-left"></i>
+              <input type="number" step="0.01" min="0" id="edit_fee_amount" name="amount" class="custom-input" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: UPLOAD QR CODE -->
+<div class="modal fade" id="uploadQrModal" tabindex="-1" aria-labelledby="uploadQrModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="uploadQrModalLabel">
+          <i class="bi bi-qr-code text-purple-dark me-2"></i>Upload Payment QR Code
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('upload_qr_route') }}" enctype="multipart/form-data">
+        <input type="hidden" name="class_id" value="{{ selected_class['id'] if selected_class else '' }}">
+        <input type="hidden" name="academic_session" value="{{ selected_session }}">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Please upload a clear image of your official payment QR code (e.g. UPI, bank, or institutional QR).
+          </p>
+
+          <div class="alert alert-info py-2 px-3 small mb-3">
+            <i class="bi bi-shield-lock me-1"></i>
+            Only readable QR-code images (PNG, JPG, JPEG) are accepted. Ordinary photos or documents are strictly
+            rejected.
+          </div>
+
+          <div class="form-group-custom mb-2">
+            <label for="qr_image_input" class="fw-semibold mb-1 small text-dark">QR Code Image *</label>
+            <input type="file" id="qr_image_input" name="qr_image" class="form-control"
+              accept=".png,.jpg,.jpeg,image/png,image/jpeg" required>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            <i class="bi bi-check2-circle me-1"></i> Verify &amp; Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RECORD STUDENT PAYMENT -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-labelledby="recordPaymentModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="recordPaymentModalLabel">
+          <i class="bi bi-cash-coin text-purple-dark me-2"></i>Record Student Fee Payment
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('record_payment_route') }}">
+        <input type="hidden" name="class_id" value="{{ selected_class['id'] if selected_class else '' }}">
+        <input type="hidden" name="academic_session" value="{{ selected_session }}">
+        <input type="hidden" id="modal_student_id" name="student_id" value="">
+
+        <div class="modal-body">
+          <div class="bg-light p-3 rounded-3 mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Student:</span>
+              <strong id="modal_student_name" class="text-dark"></strong>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted small">Roll Number:</span>
+              <span id="modal_roll_number" class="font-monospace text-secondary"></span>
+            </div>
+          </div>
+
+          <div class="form-group-custom mb-3">
+            <label for="modal_fee_structure_id" class="fw-semibold mb-1 small text-dark">Applicable Fee Head *</label>
+            <select id="modal_fee_structure_id" name="fee_structure_id" class="form-select custom-input" required
+              onchange="onModalFeeChange(this)">
+              {% for fee in fee_structures %}
+              <option value="{{ fee['id'] }}" data-amount="{{ fee['amount'] }}" {% if selected_fee_id==fee['id']
+                %}selected{% endif %}>
+                {{ fee['fee_title'] }} (₹{{ "{:,.2f}".format(fee['amount']) }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="modal_paid_amount" class="fw-semibold mb-1 small text-dark">Paid Amount (₹) *</label>
+              <input type="number" step="0.01" min="0" id="modal_paid_amount" name="paid_amount" class="form-control"
+                required>
+            </div>
+            <div class="col-6">
+              <label for="modal_payment_status" class="fw-semibold mb-1 small text-dark">Status *</label>
+              <select id="modal_payment_status" name="payment_status" class="form-select">
+                <option value="Paid">Paid</option>
+                <option value="Not Paid">Not Paid</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-2">
+            <div class="col-6">
+              <label for="modal_payment_date" class="fw-semibold mb-1 small text-dark">Payment Date</label>
+              <input type="date" id="modal_payment_date" name="payment_date" class="form-control">
+            </div>
+            <div class="col-6">
+              <label for="modal_transaction_ref" class="fw-semibold mb-1 small text-dark">Ref / UTR No.</label>
+              <input type="text" id="modal_transaction_ref" name="transaction_ref" class="form-control"
+                placeholder="Optional">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Save Payment Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VERIFY PAYMENT -->
+<div class="modal fade" id="verifyPaymentModal" tabindex="-1" aria-labelledby="verifyPaymentModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-success" id="verifyPaymentModalLabel">
+          <i class="bi bi-shield-check me-2"></i>Verify Student Payment
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="verifyPaymentForm" method="POST" action="">
+        <input type="hidden" name="class_id" value="{{ selected_class['id'] if selected_class else '' }}">
+        <input type="hidden" name="academic_session" value="{{ selected_session }}">
+        <input type="hidden" name="fee_structure_id" value="{{ selected_fee_id or '' }}">
+        <div class="modal-body">
+          <div class="alert alert-warning py-2 px-3 small mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            <strong>Teacher Verification Check:</strong> Please verify this Transaction ID / UTR against your bank or
+            UPI transaction statement before confirming payment.
+          </div>
+          <div class="bg-light p-3 rounded-3 mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Student Name:</span>
+              <strong id="verify_modal_student_name" class="text-dark"></strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Roll Number:</span>
+              <span id="verify_modal_roll_number" class="font-monospace text-secondary"></span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Fee Amount:</span>
+              <span id="verify_modal_amount" class="font-monospace fw-bold text-purple-dark"></span>
+            </div>
+            <div class="d-flex justify-content-between pt-2 border-top">
+              <span class="text-muted small">Transaction ID / UTR:</span>
+              <span id="verify_modal_tx_ref" class="font-monospace fw-bold text-dark badge bg-white border"></span>
+            </div>
+          </div>
+          <p class="text-muted small mb-0">
+            Confirming will mark this payment as <strong>Paid</strong> with today's date and record your teacher
+            verification.
+          </p>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success py-2 px-4 rounded-3 fw-semibold">
+            <i class="bi bi-check-circle me-1"></i> Confirm &amp; Mark as Paid
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: REJECT PAYMENT -->
+<div class="modal fade" id="rejectPaymentModal" tabindex="-1" aria-labelledby="rejectPaymentModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold text-danger" id="rejectPaymentModalLabel">
+          <i class="bi bi-x-circle me-2"></i>Reject Payment Submission
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="rejectPaymentForm" method="POST" action="">
+        <input type="hidden" name="class_id" value="{{ selected_class['id'] if selected_class else '' }}">
+        <input type="hidden" name="academic_session" value="{{ selected_session }}">
+        <input type="hidden" name="fee_structure_id" value="{{ selected_fee_id or '' }}">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Are you sure you want to reject this transaction submission? The student will be notified and permitted to
+            resubmit a corrected transaction ID.
+          </p>
+          <div class="bg-light p-3 rounded-3 mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Student:</span>
+              <strong id="reject_modal_student_name" class="text-dark"></strong>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Roll Number:</span>
+              <span id="reject_modal_roll_number" class="font-monospace text-secondary"></span>
+            </div>
+            <div class="d-flex justify-content-between pt-2 border-top">
+              <span class="text-muted small">Submitted Transaction ID:</span>
+              <span id="reject_modal_tx_ref" class="font-monospace fw-bold text-danger badge bg-white border"></span>
+            </div>
+          </div>
+          <div class="form-group-custom mb-2">
+            <label for="reject_modal_reason" class="fw-semibold mb-1 small text-dark">
+              Rejection Reason (Visible to Student)
+            </label>
+            <textarea id="reject_modal_reason" name="rejection_reason" class="form-control" rows="3"
+              placeholder="e.g. Transaction ID not found in bank statement, or amount transferred is incorrect."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger py-2 px-4 rounded-3 fw-semibold">
+            <i class="bi bi-x-circle me-1"></i> Confirm Rejection
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- JAVASCRIPT LOGIC                                         -->
+<!-- ======================================================== -->
+<script>
+  // Handle Class or Academic Session Switch
+  function onClassOrSessionChange() {
+    const classId = document.getElementById('class_switcher') ? document.getElementById('class_switcher').value : '';
+    const sessionVal = document.getElementById('session_switcher') ? document.getElementById('session_switcher').value : '2026–2027';
+    let url = "{{ url_for('teacher_fees') }}?session=" + encodeURIComponent(sessionVal);
+    if (classId) {
+      url += "&class_id=" + encodeURIComponent(classId);
+    }
+    window.location.href = url;
+  }
+
+  // Handle Fee Filter Switch in Students Table
+  function onFeeFilterChange(feeId) {
+    const classId = "{{ selected_class['id'] if selected_class else '' }}";
+    const sessionVal = "{{ selected_session }}";
+    let url = "{{ url_for('teacher_fees') }}?session=" + encodeURIComponent(sessionVal);
+    if (classId) {
+      url += "&class_id=" + encodeURIComponent(classId);
+    }
+    if (feeId) {
+      url += "&fee_id=" + encodeURIComponent(feeId);
+    }
+    window.location.href = url;
+  }
+
+  // Open Edit Fee Modal
+  function openEditFeeModal(feeId, feeTitle, amount) {
+    const form = document.getElementById('editFeeForm');
+    form.action = `/teacher/fees/edit/${feeId}`;
+    document.getElementById('edit_fee_title').value = feeTitle;
+    document.getElementById('edit_fee_amount').value = amount;
+    const modal = new bootstrap.Modal(document.getElementById('editFeeModal'));
+    modal.show();
+  }
+
+  // Confirm Delete Fee Entry
+  function confirmDeleteFee(feeId, feeTitle) {
+    if (!confirm(`Are you sure you want to delete '${feeTitle}'? All student payment records associated with this fee will also be removed.`)) {
+      return;
+    }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/teacher/fees/delete/${feeId}`;
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Confirm Delete QR Code
+  function confirmDeleteQr(qrId) {
+    if (!confirm("Are you sure you want to delete the payment QR code?")) {
+      return;
+    }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{{ url_for('delete_qr_route') }}";
+
+    const qrInput = document.createElement('input');
+    qrInput.type = 'hidden';
+    qrInput.name = 'qr_id';
+    qrInput.value = qrId;
+    form.appendChild(qrInput);
+
+    const classInput = document.createElement('input');
+    classInput.type = 'hidden';
+    classInput.name = 'class_id';
+    classInput.value = "{{ selected_class['id'] if selected_class else '' }}";
+    form.appendChild(classInput);
+
+    const sessionInput = document.createElement('input');
+    sessionInput.type = 'hidden';
+    sessionInput.name = 'academic_session';
+    sessionInput.value = "{{ selected_session }}";
+    form.appendChild(sessionInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Open Verify Payment Modal
+  function openVerifyPaymentModal(paymentId, studentName, rollNumber, txRef, amount) {
+    const form = document.getElementById('verifyPaymentForm');
+    form.action = `/teacher/fees/verify-payment/${paymentId}`;
+    document.getElementById('verify_modal_student_name').textContent = studentName;
+    document.getElementById('verify_modal_roll_number').textContent = rollNumber;
+    document.getElementById('verify_modal_tx_ref').textContent = txRef || '-';
+    document.getElementById('verify_modal_amount').textContent = '₹' + Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+    const modal = new bootstrap.Modal(document.getElementById('verifyPaymentModal'));
+    modal.show();
+  }
+
+  // Open Reject Payment Modal
+  function openRejectPaymentModal(paymentId, studentName, rollNumber, txRef) {
+    const form = document.getElementById('rejectPaymentForm');
+    form.action = `/teacher/fees/reject-payment/${paymentId}`;
+    document.getElementById('reject_modal_student_name').textContent = studentName;
+    document.getElementById('reject_modal_roll_number').textContent = rollNumber;
+    document.getElementById('reject_modal_tx_ref').textContent = txRef || '-';
+    document.getElementById('reject_modal_reason').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('rejectPaymentModal'));
+    modal.show();
+  }
+
+  // Open Record Payment Modal
+  function openRecordPaymentModal(studentId, studentName, rollNumber, paidAmount, paymentStatus, paymentDate, transactionRef) {
+    document.getElementById('modal_student_id').value = studentId;
+    document.getElementById('modal_student_name').textContent = studentName;
+    document.getElementById('modal_roll_number').textContent = rollNumber;
+
+    const feeSelect = document.getElementById('modal_fee_structure_id');
+    const selectedOption = feeSelect.options[feeSelect.selectedIndex];
+    const defaultAmount = selectedOption ? selectedOption.getAttribute('data-amount') : '0';
+
+    document.getElementById('modal_paid_amount').value = (paidAmount > 0) ? paidAmount : defaultAmount;
+    document.getElementById('modal_payment_status').value = paymentStatus || 'Paid';
+    document.getElementById('modal_transaction_ref').value = transactionRef || '';
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('modal_payment_date').value = (paymentDate && paymentDate !== '-') ? paymentDate : todayStr;
+
+    const modal = new bootstrap.Modal(document.getElementById('recordPaymentModal'));
+    modal.show();
+  }
+
+  function onModalFeeChange(selectElem) {
+    const opt = selectElem.options[selectElem.selectedIndex];
+    if (opt && document.getElementById('modal_payment_status').value === 'Paid') {
+      document.getElementById('modal_paid_amount').value = opt.getAttribute('data-amount') || '0';
+    }
+  }
+
+  // Real-time table filter by name or roll number
+  function filterStudentsTable() {
+    const input = document.getElementById('globalFeesSearch');
+    const filter = input.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.student-fee-row');
+
+    rows.forEach(row => {
+      const name = row.getAttribute('data-name') || '';
+      const roll = row.getAttribute('data-roll') || '';
+      if (name.includes(filter) || roll.includes(filter)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock %}

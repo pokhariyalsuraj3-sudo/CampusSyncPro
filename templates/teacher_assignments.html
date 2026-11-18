@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}Assignment Management — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR (Matching Reference Image) -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item active">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <!-- Decorative Books Illustration -->
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN ASSIGNMENT CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR -->
+    <header class="dash-topbar">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" class="dash-search-input" placeholder="Search students, assignments..." aria-label="Search">
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar">
+          {{ teacher['full_name'][0] | upper }}
+        </div>
+        <div class="dash-user-meta">
+          <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+          <p class="dash-user-role">{{ teacher['email'] }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content">
+
+      <!-- Flash Messages Container -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show mb-4" role="alert">
+        <div>
+          {% if category == 'danger' %}
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% elif category == 'success' %}
+          <i class="bi bi-check-circle-fill me-2"></i>
+          {% elif category == 'warning' %}
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill me-2"></i>
+          {% endif %}
+          {{ message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- HERO BANNER (Matching Reference Image) -->
+      <section class="dash-hero-card" aria-label="Overview Banner">
+        <div class="dash-breadcrumb">
+          <i class="bi bi-house-door-fill"></i> Dashboard &gt; Assignments
+        </div>
+        <h1 class="dash-hero-title">Assignments</h1>
+        <p class="dash-hero-subtitle">
+          Create, manage and evaluate assignments for your students.
+        </p>
+
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            Encourage, Evaluate &amp; Inspire &hearts;
+          </div>
+        </div>
+      </section>
+
+      <!-- STAT SUMMARY CARDS ROW (Matching Reference Image) -->
+      <div class="stat-pill-row">
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['total_assignments'] }}</div>
+            <div class="stat-pill-label">Total Assignments</div>
+          </div>
+          <div class="stat-pill-icon purple">
+            <i class="bi bi-journal-check"></i>
+          </div>
+        </div>
+
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['total_submitted'] }}</div>
+            <div class="stat-pill-label">Submitted</div>
+          </div>
+          <div class="stat-pill-icon blue">
+            <i class="bi bi-send-check"></i>
+          </div>
+        </div>
+
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['total_checked'] }}</div>
+            <div class="stat-pill-label">Checked</div>
+          </div>
+          <div class="stat-pill-icon green">
+            <i class="bi bi-patch-check-fill"></i>
+          </div>
+        </div>
+
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['pending_evaluation'] }}</div>
+            <div class="stat-pill-label">Pending Evaluation</div>
+          </div>
+          <div class="stat-pill-icon amber">
+            <i class="bi bi-hourglass-split"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREATE NEW ASSIGNMENT CARD & OVERVIEW (Top Grid) -->
+      <div class="dash-grid-top mb-4">
+
+        <!-- LEFT: CREATE ASSIGNMENT FORM -->
+        <div class="dash-box-card">
+          <div class="dash-box-header">
+            <div class="dash-box-header-icon">
+              <i class="bi bi-plus-circle-fill"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Create New Assignment</h2>
+              <p class="dash-box-subtitle">Fill in details and assign to the selected class and subject.</p>
+            </div>
+          </div>
+
+          <form method="POST" action="{{ url_for('create_assignment_route') }}">
+
+            <!-- Class & Subject Selectors -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="assign_class_select" class="form-label small fw-bold text-navy-dark">Class</label>
+                <select id="assign_class_select" name="class_id" class="dash-select-custom py-2"
+                  onchange="onAssignClassChange(this.value)" required>
+                  {% if not classes %}
+                  <option value="">No classes available</option>
+                  {% endif %}
+                  {% for c in classes %}
+                  <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{%
+                    endif %}>
+                    {{ c['name'] }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label for="assign_subject_select" class="form-label small fw-bold text-navy-dark">Subject</label>
+                <select id="assign_subject_select" name="subject_id" class="dash-select-custom py-2" required>
+                  {% if not subjects %}
+                  <option value="">No subjects for this class</option>
+                  {% endif %}
+                  {% for s in subjects %}
+                  <option value="{{ s['id'] }}" {% if selected_subject and selected_subject['id']==s['id'] %}selected{%
+                    endif %}>
+                    {{ s['name'] }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <!-- Field 1: Assignment Title -->
+            <div class="mb-3">
+              <label for="assign_title" class="form-label small fw-bold text-navy-dark">Assignment Title</label>
+              <input type="text" id="assign_title" name="title" class="custom-input py-2"
+                placeholder="e.g. OOPs Concepts & Inheritance Practice" required>
+            </div>
+
+            <!-- Field 2: Assignment Description -->
+            <div class="mb-3">
+              <label for="assign_description" class="form-label small fw-bold text-navy-dark">Description</label>
+              <textarea id="assign_description" name="description" class="custom-input py-2" rows="3"
+                placeholder="Enter instructions for students..." required></textarea>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Field 3: Maximum Marks -->
+              <div class="col-md-6">
+                <label for="assign_max_marks" class="form-label small fw-bold text-navy-dark">Max Marks</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-award-fill input-icon-left"></i>
+                  <input type="number" id="assign_max_marks" name="max_marks" class="custom-input py-2"
+                    placeholder="100" min="1" required>
+                </div>
+              </div>
+
+              <!-- Field 4: Due Date -->
+              <div class="col-md-6">
+                <label for="assign_due_date" class="form-label small fw-bold text-navy-dark">Due Date</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-calendar-event input-icon-left"></i>
+                  <input type="date" id="assign_due_date" name="due_date" class="custom-input py-2" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Field 5: Submission Type (Exactly two options: File Upload & Text Response) -->
+            <div class="mb-4">
+              <label class="form-label small fw-bold text-navy-dark d-block">Submission Type</label>
+              <div class="sub-type-toggle">
+                <div>
+                  <input type="radio" class="btn-check" name="submission_type" id="sub_file_upload" value="File Upload"
+                    checked autocomplete="off">
+                  <label class="sub-type-label" for="sub_file_upload">
+                    <i class="bi bi-file-earmark-arrow-up-fill text-primary"></i> File Upload
+                  </label>
+                </div>
+                <div>
+                  <input type="radio" class="btn-check" name="submission_type" id="sub_text_response"
+                    value="Text Response" autocomplete="off">
+                  <label class="sub-type-label" for="sub_text_response">
+                    <i class="bi bi-chat-left-text-fill text-primary"></i> Text Response
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple py-2 px-4" {% if not selected_class or not selected_subject
+              %}disabled{% endif %}>
+              <i class="bi bi-send-fill me-1"></i> Assign Now
+            </button>
+          </form>
+        </div>
+
+        <!-- RIGHT: ASSIGNMENT OVERVIEW (Matching Reference Image) -->
+        <div class="dash-box-card justify-content-between">
+          <div>
+            <div class="dash-box-header">
+              <div class="dash-box-header-icon">
+                <i class="bi bi-info-circle-fill"></i>
+              </div>
+              <div>
+                <h3 class="dash-box-title">Assignment Overview</h3>
+                <p class="dash-box-subtitle">Workflow & Instructions</p>
+              </div>
+            </div>
+
+            <ul class="list-unstyled mb-4">
+              <li class="d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-check-circle-fill text-success fs-5 mt-1"></i>
+                <span class="text-navy-dark">Students will view assignment instructions and requirements in their
+                  portal.</span>
+              </li>
+              <li class="d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-check-circle-fill text-success fs-5 mt-1"></i>
+                <span class="text-navy-dark">They can submit attachments (PDF, JPG, PNG, DOCX) or write text responses
+                  before the deadline.</span>
+              </li>
+              <li class="d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-check-circle-fill text-success fs-5 mt-1"></i>
+                <span class="text-navy-dark">You can review files inline, download attachments, evaluate marks, and
+                  update statuses to Checked.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="text-center py-2">
+            <svg width="120" height="120" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="25" y="15" width="80" height="105" rx="14" fill="#ffffff" stroke="#ded7f3" stroke-width="3" />
+              <rect x="45" y="8" width="40" height="14" rx="7" fill="#4d3896" />
+              <circle cx="65" cy="15" r="3" fill="#ffffff" />
+              <path d="M40 45L48 53L65 36" stroke="#10b981" stroke-width="3" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <line x1="72" y1="45" x2="95" y2="45" stroke="#ded7f3" stroke-width="3" stroke-linecap="round" />
+              <path d="M40 70L48 78L65 61" stroke="#10b981" stroke-width="3" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <line x1="72" y1="70" x2="95" y2="70" stroke="#ded7f3" stroke-width="3" stroke-linecap="round" />
+              <path d="M40 95L48 103L65 86" stroke="#10b981" stroke-width="3" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <line x1="72" y1="95" x2="95" y2="95" stroke="#ded7f3" stroke-width="3" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MY ASSIGNMENTS LIST (Matching Reference Image) -->
+      <div class="dash-box-card mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="dash-box-header-icon" style="width: 36px; height: 36px; font-size: 1.15rem;">
+              <i class="bi bi-card-checklist"></i>
+            </div>
+            <h2 class="dash-box-title fs-5 mb-0">My Assignments</h2>
+          </div>
+
+          <div class="d-flex gap-2">
+            <span class="badge-faculty">All ({{ assignments|length }})</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          {% if assignments %}
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Subject</th>
+                <th>Assignment Title</th>
+                <th>Due Date</th>
+                <th>Submission Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in assignments %}
+              <tr {% if selected_assignment and selected_assignment['id']==a['id'] %}style="background-color: #f5f2fe;"
+                {% endif %}>
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong>{{ a['subject_name'] }}</strong>
+                  <span class="small text-muted d-block">{{ a['class_name'] }}</span>
+                </td>
+                <td>
+                  <strong class="text-navy-dark">{{ a['title'] }}</strong>
+                  <span class="small text-muted d-block">{{ a['submission_type'] }} &bull; Max: {{ a['max_marks'] }}
+                    pts</span>
+                </td>
+                <td>{{ a['due_date'] }}</td>
+                <td>
+                  <!-- Submission status: Ongoing or Completed -->
+                  {% if a['submission_count'] > 0 and a['submission_count'] == a['checked_count'] and
+                  a['total_students'] > 0 %}
+                  <span class="badge-status-green"><i class="bi bi-check-circle-fill"></i> Completed</span>
+                  {% else %}
+                  <span class="badge-status-blue"><i class="bi bi-clock-history"></i> Ongoing</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <a href="{{ url_for('teacher_assignments', class_id=a['class_id'], subject_id=a['subject_id'], assignment_id=a['id']) }}"
+                      class="btn btn-sm {% if selected_assignment and selected_assignment['id'] == a['id'] %}btn-primary-purple{% else %}btn-outline-primary{% endif %} py-1 px-3">
+                      <i class="bi bi-people-fill me-1"></i> View Submissions &amp; Evaluate
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" data-bs-toggle="modal"
+                      data-bs-target="#deleteAssignmentModal{{ a['id'] }}" title="Delete Assignment"
+                      aria-label="Delete Assignment">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+
+                  <!-- Delete Confirmation Modal -->
+                  <div class="modal fade" id="deleteAssignmentModal{{ a['id'] }}" tabindex="-1"
+                    aria-labelledby="deleteModalLabel{{ a['id'] }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content" style="border-radius: 18px; border: 1px solid var(--card-border);">
+                        <div class="modal-header border-0 pb-0">
+                          <h5 class="modal-title fw-bold text-danger" id="deleteModalLabel{{ a['id'] }}">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Assignment
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                          <p class="mb-1 text-navy-dark fw-semibold">
+                            Are you sure you want to delete this assignment? This action cannot be undone.
+                          </p>
+                          <p class="small text-muted mb-0">
+                            Assignment: <strong>{{ a['title'] }}</strong> ({{ a['subject_name'] }})
+                          </p>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                          <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">Cancel</button>
+                          <form method="POST" action="{{ url_for('delete_assignment_route') }}"
+                            style="display: inline;">
+                            <input type="hidden" name="assignment_id" value="{{ a['id'] }}">
+                            <button type="submit" class="btn btn-danger px-3 fw-bold">
+                              Delete Assignment
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-journal-x fs-3 d-block mb-2"></i>
+            No assignments created yet. Use the form above to create your first assignment.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- STUDENT SUBMISSION TABLE (Below Form for Selected Assignment) -->
+      {% if selected_assignment %}
+      <div class="dash-box-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+          <div>
+            <h2 class="dash-box-title fs-5">
+              <i class="bi bi-mortarboard-fill text-primary me-2"></i>
+              Student Submissions: <span class="text-primary">{{ selected_assignment['title'] }}</span>
+            </h2>
+            <p class="dash-box-subtitle">
+              Class: <strong>{{ selected_assignment['class_name'] }}</strong> &bull;
+              Subject: <strong>{{ selected_assignment['subject_name'] }}</strong> &bull;
+              Max Marks: <strong>{{ selected_assignment['max_marks'] }}</strong> &bull;
+              Type: <strong>{{ selected_assignment['submission_type'] }}</strong>
+            </p>
+          </div>
+
+          <div>
+            <button type="button" class="btn-secondary-purple py-1 px-3" data-bs-toggle="modal"
+              data-bs-target="#enrollStudentModal">
+              <i class="bi bi-person-plus-fill me-1"></i> Enroll Student
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          {% if submissions %}
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>S. No.</th>
+                <th>Student Name</th>
+                <th>Submission Status</th>
+                <th>Submitted File</th>
+                <th>Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in submissions %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong class="text-navy">{{ s['student_name'] }}</strong>
+                  <span class="small text-muted d-block">{{ s['student_email'] }}</span>
+                  {% if s['roll_number'] %}
+                  <span class="badge bg-light text-dark border font-monospace mt-1" style="font-size: 0.75rem;">
+                    <i class="bi bi-person-badge me-1 text-purple"></i>Roll No: {{ s['roll_number'] }}
+                  </span>
+                  {% endif %}
+                </td>
+
+                <!-- Exactly 3 Status Colors: RED (Not Submitted), BLUE (Submitted), GREEN (Checked) -->
+                <td>
+                  {% if s['status_color'] == 'RED' %}
+                  <span class="badge-status-red">
+                    <i class="bi bi-x-circle-fill"></i> Not Submitted
+                  </span>
+                  {% elif s['status_color'] == 'BLUE' %}
+                  <span class="badge-status-blue">
+                    <i class="bi bi-clock-fill"></i> Submitted
+                  </span>
+                  {% elif s['status_color'] == 'GREEN' %}
+                  <span class="badge-status-green">
+                    <i class="bi bi-check-circle-fill"></i> Checked
+                  </span>
+                  {% endif %}
+                </td>
+
+                <!-- Submitted File column -->
+                <td>
+                  {% if s['file_path'] %}
+                  <div class="d-flex flex-column gap-1">
+                    <span class="small font-monospace text-dark fw-bold text-truncate" style="max-width: 220px;"
+                      title="{{ s['original_filename'] }}">
+                      <i class="bi bi-paperclip text-primary"></i> {{ s['original_filename'] }}
+                    </span>
+                    {% if s['submitted_at'] %}
+                    <span class="text-muted" style="font-size: 0.75rem;">
+                      <i class="bi bi-clock me-1"></i>{{ s['submitted_at'][:19] }}
+                    </span>
+                    {% endif %}
+                    <div class="d-flex gap-2 mt-1">
+                      <a href="{{ url_for('view_submission_file', submission_id=s['submission_id']) }}" target="_blank"
+                        class="btn-view-file" title="View File Inline in New Tab">
+                        <i class="bi bi-eye"></i> View File
+                      </a>
+                      <a href="{{ url_for('download_submission_file', submission_id=s['submission_id']) }}"
+                        class="btn-download-file" title="Download File">
+                        <i class="bi bi-download"></i> Download
+                      </a>
+                    </div>
+                  </div>
+                  {% elif s['submission_text'] %}
+                  <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary py-1 px-2" data-bs-toggle="modal"
+                      data-bs-target="#textResponseModal{{ s['submission_id'] }}">
+                      <i class="bi bi-file-earmark-text me-1"></i> View Text Response
+                    </button>
+
+                    <!-- Modal to view text response -->
+                    <div class="modal fade" id="textResponseModal{{ s['submission_id'] }}" tabindex="-1"
+                      aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content" style="border-radius: 18px;">
+                          <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Student Response: {{ s['student_name'] }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body">
+                            <p class="small text-muted mb-2">Submitted on {{ s['submitted_at'] }}</p>
+                            <div class="p-3 bg-light rounded border text-navy-dark"
+                              style="white-space: pre-wrap; font-size: 0.95rem;">
+                              {{- s['submission_text'] -}}
+                            </div>
+                          </div>
+                          <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% else %}
+                  <span class="text-muted fst-italic small">No File Submitted</span>
+                  {% endif %}
+                </td>
+
+                <!-- Marks Column -->
+                <td>
+                  {% if s['submission_id'] %}
+                  <form method="POST" action="{{ url_for('save_marks') }}" class="marks-eval-form">
+                    <input type="hidden" name="submission_id" value="{{ s['submission_id'] }}">
+                    <input type="hidden" name="assignment_id" value="{{ selected_assignment['id'] }}">
+                    <input type="number" name="marks" value="{{ s['marks'] if s['marks'] is not none else '' }}" min="0"
+                      max="{{ selected_assignment['max_marks'] }}" step="any" class="marks-input"
+                      placeholder="0 - {{ selected_assignment['max_marks'] }}" required>
+                    <span class="small text-muted fw-bold">/ {{ selected_assignment['max_marks'] }}</span>
+                    <button type="submit" class="btn-save-marks" title="Save Marks">
+                      <i class="bi bi-check2"></i> Save Marks
+                    </button>
+                  </form>
+                  {% else %}
+                  <span class="text-muted small">Awaiting Submission</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <!-- Proper Empty State when no students are in the class -->
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-person-x fs-1 d-block mb-2 text-primary opacity-50"></i>
+            <h4 class="h6 fw-bold text-dark">No Students Enrolled Yet</h4>
+            <p class="small max-w-sm mx-auto mb-3" style="max-width: 360px;">
+              There are no student records for <strong>{{ selected_assignment['class_name'] }}</strong> yet. Click
+              <strong>Enroll Student</strong> below to add students for this class.
+            </p>
+            <button type="button" class="btn-primary-purple py-2 px-4" data-bs-toggle="modal"
+              data-bs-target="#enrollStudentModal" style="width: auto;">
+              <i class="bi bi-person-plus-fill me-1"></i> Enroll Student in {{ selected_assignment['class_name'] }}
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: ENROLL STUDENT -->
+<div class="modal fade" id="enrollStudentModal" tabindex="-1" aria-labelledby="enrollStudentModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="enrollStudentModalLabel">
+          <i class="bi bi-person-plus-fill text-primary me-2"></i>Enroll Student in Class
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_student') }}">
+        <input type="hidden" name="assignment_id"
+          value="{{ selected_assignment['id'] if selected_assignment else '' }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="enroll_class_select" class="form-label small fw-bold text-navy-dark">Class</label>
+            <select id="enroll_class_select" name="class_id" class="dash-select-custom py-2" required>
+              {% for c in classes %}
+              <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{% endif
+                %}>
+                {{ c['name'] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="student_fullname" class="form-label small fw-bold text-navy-dark">Student Full Name</label>
+            <input type="text" id="student_fullname" name="full_name" class="custom-input py-2"
+              placeholder="e.g. John Doe" required>
+          </div>
+          <div class="mb-3">
+            <label for="student_email_input" class="form-label small fw-bold text-navy-dark">Student Email</label>
+            <input type="email" id="student_email_input" name="email" class="custom-input py-2"
+              placeholder="e.g. john@student.edu" required>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Enroll Student
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function onAssignClassChange(classId) {
+    if (!classId) return;
+    window.location.href = "{{ url_for('teacher_assignments') }}?class_id=" + encodeURIComponent(classId);
+  }
+</script>
+{% endblock %}

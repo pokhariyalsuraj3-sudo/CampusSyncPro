@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Login — CampusSync{% endblock %}
+
+{% block content %}
+<main class="page-container">
+  <div class="app-card-wrapper">
+    <div class="portal-card">
+
+      <!-- Left Column: CampusSync Branding & College Illustration -->
+      <section class="hero-card" aria-label="CampusSync Overview">
+        <div class="hero-branding">
+          <h1 class="hero-title">Campus Sync</h1>
+          <p class="hero-subtitle">Your College Management Partner</p>
+          <div class="hero-cursive">
+            Smart Access.<br>
+            Better Campus Experience.
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <img src="{{ url_for('static', filename='images/college_illustration.png') }}"
+            alt="Campus Building Illustration" class="college-img"
+            onerror="this.src='{{ url_for('static', filename='images/left_hero.png') }}';">
+          <img src="{{ url_for('static', filename='images/grad_cap.png') }}" alt="Graduation Cap" class="floating-cap">
+        </div>
+
+        <!-- 4 Highlights at bottom of hero -->
+        <div class="features-strip">
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-calendar3"></i>
+            </div>
+            <span class="feature-label">View<br>Timetable</span>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-bar-chart-fill"></i>
+            </div>
+            <span class="feature-label">Track<br>Attendance</span>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-card-text"></i>
+            </div>
+            <span class="feature-label">Check<br>Notices</span>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-trophy-fill"></i>
+            </div>
+            <span class="feature-label">Monitor<br>Progress</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Login Card -->
+      <section class="auth-card" aria-label="Login Form">
+        <div class="auth-header">
+          <h2 class="auth-title">Login to Campus Sync</h2>
+          <p class="auth-subtitle">Choose your role and login to continue</p>
+        </div>
+
+        <!-- Role Selection Tabs -->
+        <div class="role-tabs" role="tablist">
+          <button type="button" id="role-student-btn"
+            class="role-tab-btn {% if active_role != 'teacher' %}active{% endif %}" role="tab"
+            aria-selected="{% if active_role != 'teacher' %}true{% else %}false{% endif %}">
+            <i class="bi bi-mortarboard"></i> Student
+          </button>
+
+          <button type="button" id="role-teacher-btn"
+            class="role-tab-btn {% if active_role == 'teacher' %}active{% endif %}" role="tab"
+            aria-selected="{% if active_role == 'teacher' %}true{% else %}false{% endif %}">
+            <i class="bi bi-person-video3"></i> Teacher
+          </button>
+        </div>
+
+        <!-- Flash Messages Container -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show" role="alert">
+          <div>
+            {% if category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% elif category == 'success' %}
+            <i class="bi bi-check-circle-fill me-2"></i>
+            {% elif category == 'warning' %}
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill me-2"></i>
+            {% endif %}
+            {{ message }}
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- STUDENT LOGIN FORM (Real Flask Authentication Backend) -->
+        <div id="student-login-section"
+          style="{% if active_role == 'teacher' %}display: none;{% else %}display: block;{% endif %}">
+
+          <div class="alert alert-info py-2 px-3 small mb-3 border-0 rounded-3"
+            style="background: var(--bg-lavender); color: var(--navy);">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-shield-check text-purple"></i>
+              <strong>Student Login</strong>
+            </div>
+            <div style="font-size: 0.82rem; line-height: 1.35;">
+              Enter your registered student email and password to log in. Once logged in, you can join additional subjects
+              directly from your dashboard.
+            </div>
+          </div>
+
+          <form id="student-login-form" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="role" value="student">
+
+            <div class="form-group-custom">
+              <label for="student_email" class="visually-hidden">Email Address</label>
+              <div class="input-with-icon">
+                <i class="bi bi-envelope input-icon-left"></i>
+                <input type="email" id="student_email" name="email" class="custom-input" placeholder="Enter your Email"
+                  value="{{ email or '' }}" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="form-group-custom">
+              <label for="student_login_password" class="visually-hidden">Password</label>
+              <div class="input-with-icon">
+                <i class="bi bi-lock input-icon-left"></i>
+                <input type="password" id="student_login_password" name="password" class="custom-input"
+                  placeholder="Enter your Password" autocomplete="current-password" required>
+                <button type="button" class="toggle-pwd-btn" data-target="student_login_password"
+                  aria-label="Toggle password visibility">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple mt-3">
+              Login as Student <i class="bi bi-arrow-right"></i>
+            </button>
+          </form>
+
+          <div class="auth-footer-links text-center mt-3">
+            First-time student? <a href="{{ url_for('register', role='student') }}" class="auth-link">Register Student
+              Account</a>
+          </div>
+          <div class="admin-contact">
+            Need help? Contact your <a href="mailto:admin@campussync.edu" class="auth-link">administrator</a>.
+          </div>
+        </div>
+
+        <!-- TEACHER LOGIN FORM (Real Flask Authentication Backend) -->
+        <div id="teacher-login-section"
+          style="{% if active_role == 'teacher' %}display: block;{% else %}display: none;{% endif %}">
+          <form id="teacher-login-form" method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="role" value="teacher">
+
+            <div class="form-group-custom">
+              <label for="teacher_email" class="visually-hidden">Email Address</label>
+              <div class="input-with-icon">
+                <i class="bi bi-envelope input-icon-left"></i>
+                <input type="email" id="teacher_email" name="email" class="custom-input" placeholder="Enter your Email"
+                  value="{{ email or '' }}" autocomplete="email" required>
+              </div>
+            </div>
+
+            <div class="form-group-custom">
+              <label for="teacher_password" class="visually-hidden">Password</label>
+              <div class="input-with-icon">
+                <i class="bi bi-lock input-icon-left"></i>
+                <input type="password" id="teacher_password" name="password" class="custom-input"
+                  placeholder="Enter your Password" autocomplete="current-password" required>
+                <button type="button" class="toggle-pwd-btn" data-target="teacher_password"
+                  aria-label="Toggle password visibility">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple mt-3">
+              Login as Teacher <i class="bi bi-arrow-right"></i>
+            </button>
+          </form>
+
+          <div class="auth-footer-links">
+            Don't have an account?
+            <a href="{{ url_for('register') }}" class="auth-link">Register here</a>
+          </div>
+
+          <div class="admin-contact">
+            Faculty member? Need assistance? Contact <a href="mailto:support@campussync.edu"
+              class="auth-link">administrator</a>.
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+</main>
+{% endblock %}

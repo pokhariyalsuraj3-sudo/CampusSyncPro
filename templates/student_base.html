@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{% block student_title %}Student Portal — CampusSync{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- STUDENT LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Student Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Student Portal</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('student_dashboard') }}" class="dash-nav-item {% if active_nav == 'dashboard' %}active{% endif %}">
+          <i class="bi bi-grid-fill"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('student_assignments') }}" class="dash-nav-item {% if active_nav == 'assignments' %}active{% endif %}">
+          <i class="bi bi-journal-text"></i>
+          <span>My Assignments</span>
+        </a>
+        <a href="{{ url_for('student_tests') }}" class="dash-nav-item {% if active_nav == 'tests' %}active{% endif %}">
+          <i class="bi bi-pencil-square"></i>
+          <span>Written Tests</span>
+        </a>
+        <a href="{{ url_for('student_attendance') }}" class="dash-nav-item {% if active_nav == 'attendance' %}active{% endif %}">
+          <i class="bi bi-calendar-check"></i>
+          <span>My Attendance</span>
+        </a>
+        <a href="{{ url_for('student_timetable') }}" class="dash-nav-item {% if active_nav == 'timetable' %}active{% endif %}">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Timetable</span>
+        </a>
+        <a href="{{ url_for('student_notices') }}" class="dash-nav-item {% if active_nav == 'notices' %}active{% endif %}">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('student_fees') }}" class="dash-nav-item {% if active_nav == 'fees' %}active{% endif %}">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees</span>
+        </a>
+        <a href="{{ url_for('student_profile') }}" class="dash-nav-item {% if active_nav == 'profile' %}active{% endif %}">
+          <i class="bi bi-person-badge"></i>
+          <span>My Profile</span>
+        </a>
+        <a href="{{ url_for('student_settings') }}" class="dash-nav-item {% if active_nav == 'settings' %}active{% endif %}">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <!-- Decorative Books Illustration -->
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- STUDENT MAIN AREA -->
+  <div class="dash-main-area">
+
+    <!-- TOP HEADER -->
+    <header class="dash-top-header">
+      <div class="dash-header-left">
+        <h1 class="dash-page-title">{% block page_heading %}Student Dashboard{% endblock %}</h1>
+        <div class="dash-breadcrumb">
+          <span>Student Portal</span>
+          <i class="bi bi-chevron-right"></i>
+          <span class="current">{% block breadcrumb_current %}Overview{% endblock %}</span>
+        </div>
+      </div>
+
+      <div class="dash-header-right">
+        <div class="dash-user-pill">
+          <div class="user-avatar-circle">
+            {{ student['full_name'][:2]|upper }}
+          </div>
+          <div class="user-info-text">
+            <div class="user-name">{{ student['full_name'] }}</div>
+            <div class="user-role-badge">
+              {{ student_class['name'] if student_class else 'Student' }} &bull; {{ student['roll_number'] or 'Not Assigned Yet' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content-body">
+
+      <!-- FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="mb-4">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show" role="alert">
+          <div>
+            {% if category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% elif category == 'success' %}
+            <i class="bi bi-check-circle-fill me-2"></i>
+            {% elif category == 'warning' %}
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill me-2"></i>
+            {% endif %}
+            {{ message }}
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      {% block student_content %}{% endblock %}
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,126 @@
+{% extends "student_base.html" %}
+
+{% block student_title %}Class Timetable — CampusSync{% endblock %}
+{% block page_heading %}Timetable{% endblock %}
+{% block breadcrumb_current %}Schedule{% endblock %}
+
+{% block student_content %}
+{% set active_nav = 'timetable' %}
+
+<!-- HERO BANNER -->
+<section class="dash-hero-card mb-4">
+  <div class="dash-hero-content">
+    <div class="dash-hero-tag">
+      <i class="bi bi-calendar3-week me-1"></i> Weekly Schedule
+    </div>
+    <h2 class="dash-hero-greeting">
+      Class Timetable &bull; <span class="teacher-highlight">{{ class_name }}</span>
+    </h2>
+    <p class="dash-hero-sub">
+      Lecture periods and laboratory timings for your academic schedule.
+    </p>
+  </div>
+
+  <div class="dash-hero-badge">
+    <div class="dash-hero-badge-cursive">
+      Consistency &bull; Routine &bull; Dedication &hearts;
+    </div>
+  </div>
+</section>
+
+<!-- TIMETABLE SPREADSHEET CARD -->
+<div class="dash-box-card mb-4">
+  <div class="dash-box-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+        <i class="bi bi-table"></i>
+      </div>
+      <div>
+        <h2 class="dash-box-title">Weekly Schedule — {{ class_name }}</h2>
+        <p class="dash-box-subtitle">Monday through Saturday period slots</p>
+      </div>
+    </div>
+
+    <span class="badge bg-purple-light text-purple-dark border px-3 py-2 small fw-semibold">
+      <i class="bi bi-clock me-1"></i> 3 Morning Periods &bull; Lunch &bull; 4 Afternoon Periods
+    </span>
+  </div>
+
+  <div class="excel-timetable-wrapper mt-3">
+    <table class="dash-table excel-timetable-table">
+      <thead>
+        <tr>
+          <th class="timetable-header-day text-center">Day</th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period I</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_1'] }}</div>
+          </th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period II</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_2'] }}</div>
+          </th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period III</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_3'] }}</div>
+          </th>
+          <th class="timetable-header-col timetable-lunch-col text-center" style="background-color: #faf5ff;">
+            <div class="fw-bold text-purple-dark">Lunch</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['lunch'] }}</div>
+          </th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period IV</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_4'] }}</div>
+          </th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period V</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_5'] }}</div>
+          </th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period VI</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_6'] }}</div>
+          </th>
+          <th class="timetable-header-col text-center">
+            <div class="fw-bold">Period VII</div>
+            <div class="small text-muted" style="font-size: 0.75rem;">{{ timings['period_7'] }}</div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for day in days %}
+        {% set d_data = grid_data.get(day, {}) %}
+        <tr>
+          <td class="timetable-day-cell text-center fw-bold text-navy" style="background-color: #faf8fe;">
+            {{ day }}
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_1', '-') }}</span>
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_2', '-') }}</span>
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_3', '-') }}</span>
+          </td>
+          <td class="text-center timetable-lunch-cell text-muted small fw-semibold" style="background-color: #faf5ff;">
+            Lunch Break
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_4', '-') }}</span>
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_5', '-') }}</span>
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_6', '-') }}</span>
+          </td>
+          <td class="text-center font-monospace small p-2">
+            <span class="badge bg-white text-dark border px-2 py-1 w-100">{{ d_data.get('period_7', '-') }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+

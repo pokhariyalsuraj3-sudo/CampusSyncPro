@@ -1,0 +1,144 @@
+{% extends "student_base.html" %}
+
+{% block student_title %}Written Tests &amp; Marks — CampusSync{% endblock %}
+{% block page_heading %}Written Tests{% endblock %}
+{% block breadcrumb_current %}Tests &amp; Marks{% endblock %}
+
+{% block student_content %}
+{% set active_nav = 'tests' %}
+
+<!-- HERO BANNER -->
+<section class="dash-hero-card mb-4">
+  <div class="dash-hero-content">
+    <div class="dash-hero-tag">
+      <i class="bi bi-pencil-square me-1"></i> Evaluations
+    </div>
+    <h2 class="dash-hero-greeting">
+      Written Tests &amp; Performance
+    </h2>
+    <p class="dash-hero-sub">
+      Class: <strong>{{ student_class['name'] if student_class else 'Enrolled Class' }}</strong> &bull;
+      Total tests: <strong>{{ tests|length }}</strong> &bull;
+      Graded: <strong>{{ graded_count }}</strong>
+    </p>
+  </div>
+
+  <div class="dash-hero-badge">
+    <div class="dash-hero-badge-cursive">
+      Assessment &bull; Continuous Improvement &hearts;
+    </div>
+  </div>
+</section>
+
+<!-- TESTS ROSTER CARD -->
+<div class="dash-box-card mb-4">
+  <div class="dash-box-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+        <i class="bi bi-card-checklist"></i>
+      </div>
+      <div>
+        <h2 class="dash-box-title">Written Tests Evaluation</h2>
+        <p class="dash-box-subtitle">Scores recorded by faculty for your class</p>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 small">
+        Graded: {{ graded_count }}
+      </span>
+      <span class="badge bg-purple-light text-purple-dark border px-3 py-2 small">
+        Total: {{ tests|length }}
+      </span>
+    </div>
+  </div>
+
+  <!-- SUBJECT FILTER PILLS -->
+  {% if enrolled_subjects %}
+  <div class="d-flex flex-wrap gap-2 px-3 pt-3">
+    <a href="{{ url_for('student_tests') }}"
+      class="badge rounded-pill text-decoration-none px-3 py-2 {% if not selected_subject_id %}bg-primary-purple text-white{% else %}bg-light text-dark border{% endif %}">
+      All Subjects
+    </a>
+    {% for s in enrolled_subjects %}
+    <a href="{{ url_for('student_tests', subject_id=s['subject_id']) }}"
+      class="badge rounded-pill text-decoration-none px-3 py-2 {% if selected_subject_id == s['subject_id'] %}bg-primary-purple text-white{% else %}bg-light text-dark border{% endif %}">
+      {{ s['subject_name'] }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="table-responsive mt-3">
+    {% if tests %}
+    <table class="dash-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Subject</th>
+          <th>Test Title</th>
+          <th>Test Date</th>
+          <th>Max Marks</th>
+          <th>Marks Obtained</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tests %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <span class="badge bg-purple-light text-purple-dark border small fw-semibold">
+              {{ t['subject_name'] }}
+            </span>
+          </td>
+          <td>
+            <div class="fw-bold text-navy">{{ t['title'] }}</div>
+            {% if t['description'] %}
+            <div class="text-muted small text-truncate" style="max-width: 250px;">{{ t['description'] }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="small fw-semibold text-secondary">
+              <i class="bi bi-calendar3 me-1"></i>{{ t['test_date'] or 'N/A' }}
+            </span>
+          </td>
+          <td>
+            <span class="font-monospace fw-semibold">{{ t['max_marks'] }} pts</span>
+          </td>
+          <td>
+            {% if t['marks_obtained'] is not none %}
+            <span class="font-monospace fw-bold fs-6 text-purple-dark">
+              {{ t['marks_obtained'] }} / {{ t['max_marks'] }}
+            </span>
+            <span class="badge bg-light text-secondary border small ms-1">
+              {{ t['percentage'] }}%
+            </span>
+            {% else %}
+            <span class="text-muted small">Not graded yet</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t['marks_obtained'] is not none %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+              <i class="bi bi-check-circle-fill me-1"></i> Graded
+            </span>
+            {% else %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 small">
+              <i class="bi bi-clock me-1"></i> Pending
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-file-earmark-x fs-2 d-block mb-2 opacity-50"></i>
+      No written tests recorded for your class.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

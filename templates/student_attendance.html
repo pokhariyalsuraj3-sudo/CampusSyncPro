@@ -1,0 +1,323 @@
+{% extends "student_base.html" %}
+
+{% block student_title %}My Attendance &amp; Face ID — CampusSync{% endblock %}
+{% block page_heading %}My Attendance{% endblock %}
+{% block breadcrumb_current %}Attendance &amp; Biometrics{% endblock %}
+
+{% block student_content %}
+{% set active_nav = 'attendance' %}
+
+<!-- ATTENDANCE OVERVIEW BANNER -->
+<section class="dash-hero-card mb-4">
+  <div class="dash-hero-content">
+    <div class="dash-hero-tag">
+      <i class="bi bi-calendar-check-fill me-1"></i> Biometrics &amp; Attendance
+    </div>
+    <h2 class="dash-hero-greeting">
+      Attendance Rate: <span class="teacher-highlight">{{ attendance_pct }}%</span>
+    </h2>
+    <p class="dash-hero-sub">
+      Attended <strong>{{ attended_classes }}</strong> out of <strong>{{ total_classes }}</strong> lecture sessions
+      &bull;
+      Enrolled in <strong>{{ student_class['name'] if student_class else 'Enrolled Class' }}</strong>
+    </p>
+  </div>
+
+  <div class="dash-hero-badge">
+    <div class="dash-hero-badge-cursive">
+      Punctuality &bull; Biometric Integrity &bull; Growth &hearts;
+    </div>
+  </div>
+</section>
+
+<!-- TWO-COLUMN GRID: BIOMETRICS (LEFT) & ATTENDANCE HISTORY (RIGHT) -->
+<div class="row g-4 mb-4">
+
+  <!-- LEFT: FACE BIOMETRIC ID ENROLLMENT -->
+  <div class="col-12 col-xl-5">
+    <div class="dash-box-card h-100">
+      <div class="dash-box-header d-flex align-items-center gap-3">
+        <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+          <i class="bi bi-person-bounding-box"></i>
+        </div>
+        <div>
+          <h2 class="dash-box-title">Face Biometric ID</h2>
+          <p class="dash-box-subtitle">Automated lecture attendance verification</p>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        {% if enrollment %}
+        <!-- ENROLLED STATE -->
+        <div class="p-4 rounded-4 text-center border" style="background: #f4fbf7; border-color: #c3e6cb !important;">
+          <div class="mb-3">
+            <span
+              class="rounded-circle d-inline-flex align-items-center justify-content-center bg-success text-white shadow-sm"
+              style="width: 64px; height: 64px; font-size: 2rem;">
+              <i class="bi bi-check-lg"></i>
+            </span>
+          </div>
+          <h5 class="fw-bold text-navy mb-1">Face Recognition Active</h5>
+          <p class="text-muted small mb-3">
+            Your biometric face descriptor is registered. You will automatically be marked <strong>Present</strong> when
+            your teacher scans attendance in class.
+          </p>
+
+          {% if enrollment and enrollment['photo_path'] %}
+          <div class="mb-3">
+            <img src="/{{ enrollment['photo_path'] }}" alt="Enrolled Face"
+              class="rounded-circle border shadow-sm p-1 bg-white"
+              style="width: 100px; height: 100px; object-fit: cover;">
+          </div>
+          {% endif %}
+
+          <div class="bg-white p-3 rounded-3 border small mb-3 text-start">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Status:</span>
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Registered &bull;
+                Active</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Enrolled on:</span>
+              <span class="fw-semibold text-dark">{{ enrollment['enrolled_at'][:19] if (enrollment and
+                enrollment['enrolled_at']) else 'N/A' }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Consent:</span>
+              <span class="text-success fw-semibold"><i class="bi bi-shield-check"></i> Given</span>
+            </div>
+          </div>
+
+          <form action="{{ url_for('remove_student_face') }}" method="POST"
+            onsubmit="return confirm('Are you sure you want to remove your face biometric enrollment? You will need to re-enroll to enable automatic facial recognition.');">
+            <button type="submit" class="btn btn-sm btn-outline-danger py-2 px-3 rounded-pill w-100">
+              <i class="bi bi-trash3 me-1"></i> Remove Face Biometric ID
+            </button>
+          </form>
+        </div>
+
+        {% else %}
+        <!-- NOT ENROLLED: CAMERA OR PHOTO UPLOAD -->
+        <div class="p-3 bg-light rounded-4 border">
+          <h6 class="fw-bold text-navy mb-2">Capture or Upload Face</h6>
+          <p class="text-muted small mb-3">
+            Please capture a clear photo of your face using your webcam or upload a clear photo for biometric
+            verification.
+          </p>
+
+          <!-- Input Method Nav Tabs -->
+          <ul class="nav nav-pills nav-fill mb-3" id="faceInputTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active py-2 small fw-semibold" id="tab-webcam" data-bs-toggle="pill"
+                data-bs-target="#pane-webcam" type="button" role="tab" style="border-radius: 10px;">
+                <i class="bi bi-camera-video me-1"></i> Live Webcam
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link py-2 small fw-semibold" id="tab-upload" data-bs-toggle="pill"
+                data-bs-target="#pane-upload" type="button" role="tab" style="border-radius: 10px;">
+                <i class="bi bi-upload me-1"></i> Upload Photo
+              </button>
+            </li>
+          </ul>
+
+          <form action="{{ url_for('save_student_face') }}" method="POST" enctype="multipart/form-data"
+            id="studentFaceForm">
+            <input type="hidden" name="image_data" id="student_image_data">
+
+            <div class="tab-content" id="faceInputTabContent">
+              <!-- WEBCAM PANE -->
+              <div class="tab-pane fade show active text-center" id="pane-webcam" role="tabpanel">
+                <div class="attendance-camera-wrapper mb-2"
+                  style="max-height: 240px; position: relative; background: #000; border-radius: 14px; overflow: hidden;">
+                  <video id="student-video" class="w-100" style="max-height: 240px; object-fit: cover;" autoplay
+                    playsinline muted></video>
+                  <canvas id="student-canvas" class="d-none"></canvas>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-center mb-3">
+                  <button type="button" class="btn btn-outline-purple btn-sm py-1 px-3" id="start-student-cam-btn">
+                    <i class="bi bi-camera me-1"></i> Start Camera
+                  </button>
+                  <button type="button" class="btn btn-primary-purple btn-sm py-1 px-3" id="snap-student-btn" disabled>
+                    <i class="bi bi-camera-fill me-1"></i> Take Snapshot
+                  </button>
+                </div>
+                <div id="student-snap-preview" class="mb-2 text-success small fw-semibold d-none">
+                  <i class="bi bi-check-circle-fill me-1"></i> Snapshot Captured!
+                </div>
+              </div>
+
+              <!-- PHOTO UPLOAD PANE -->
+              <div class="tab-pane fade" id="pane-upload" role="tabpanel">
+                <div class="mb-3">
+                  <label for="student_face_photo" class="form-label small fw-semibold text-navy">Choose a clear photo
+                    (JPG, PNG)</label>
+                  <input class="form-control form-control-sm" type="file" id="student_face_photo" name="face_photo"
+                    accept="image/jpeg,image/png">
+                  <div class="form-text small">Ensure your face is well-lit and centered.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- EXPLICIT BIOMETRIC CONSENT -->
+            <div class="p-3 bg-white rounded-3 border mb-3 mt-2">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="consent" id="biometric_consent" value="1"
+                  required>
+                <label class="form-check-label small text-muted" for="biometric_consent">
+                  I give consent to CampusSync to store my facial biometric representation strictly for classroom
+                  attendance verification.
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple py-2 px-4 w-100" id="save-face-btn">
+              <i class="bi bi-shield-check me-1"></i> Register My Face ID
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: ATTENDANCE HISTORY ROSTER -->
+  <div class="col-12 col-xl-7">
+    <div class="dash-box-card h-100">
+      <div class="dash-box-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+            <i class="bi bi-clock-history"></i>
+          </div>
+          <div>
+            <h2 class="dash-box-title">Attendance History</h2>
+            <p class="dash-box-subtitle">Full record of lecture sessions logged</p>
+          </div>
+        </div>
+
+        <span class="badge bg-purple-light text-purple-dark border px-3 py-2 small fw-semibold">
+          {{ attended_classes }} / {{ total_classes }} Present
+        </span>
+      </div>
+
+      <!-- SUBJECT FILTER PILLS -->
+      {% if enrolled_subjects %}
+      <div class="d-flex flex-wrap gap-2 mt-3 mb-2">
+        <a href="{{ url_for('student_attendance') }}"
+          class="badge rounded-pill text-decoration-none px-3 py-2 {% if not selected_subject_id %}bg-primary-purple text-white{% else %}bg-light text-dark border{% endif %}">
+          All Subjects
+        </a>
+        {% for s in enrolled_subjects %}
+        <a href="{{ url_for('student_attendance', subject_id=s['subject_id']) }}"
+          class="badge rounded-pill text-decoration-none px-3 py-2 {% if selected_subject_id == s['subject_id'] %}bg-primary-purple text-white{% else %}bg-light text-dark border{% endif %}">
+          {{ s['subject_name'] }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="table-responsive mt-3">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Subject</th>
+              <th>Faculty</th>
+              <th>Status</th>
+              <th>Scan Time</th>
+              <th>Method</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if attendance_history %}
+            {% for record in attendance_history %}
+            <tr>
+              <td class="fw-semibold text-navy">{{ record['attendance_date'] }}</td>
+              <td class="text-truncate" style="max-width: 140px;">{{ record['subject_name'] or 'Class Lecture' }}</td>
+              <td class="small text-muted">{{ record['teacher_name'] or 'Class Faculty' }}</td>
+              <td>
+                {% if record['status'] == 'Present' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                  <i class="bi bi-check-circle-fill me-1"></i> Present
+                </span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small">
+                  <i class="bi bi-x-circle-fill me-1"></i> Absent
+                </span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="font-monospace small text-muted">
+                  {{ record['scan_time'] if record['scan_time'] else '-' }}
+                </span>
+              </td>
+              <td>
+                {% if record['verification_method'] == 'face' %}
+                <span class="badge bg-purple-light text-purple-dark border small">
+                  <i class="bi bi-camera-fill me-1"></i> Face Scan
+                </span>
+                {% else %}
+                <span class="badge bg-light text-muted border small">
+                  Manual
+                </span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <i class="bi bi-calendar-x fs-2 d-block mb-2 opacity-50"></i>
+                No attendance records logged yet.
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- WEBCAM & CAPTURE SCRIPT -->
+<script>
+  let studentStream = null;
+  const studentVideo = document.getElementById('student-video');
+  const studentCanvas = document.getElementById('student-canvas');
+  const startStudentCamBtn = document.getElementById('start-student-cam-btn');
+  const snapStudentBtn = document.getElementById('snap-student-btn');
+  const studentImgDataInput = document.getElementById('student_image_data');
+  const studentSnapPreview = document.getElementById('student-snap-preview');
+  const studentPhotoInput = document.getElementById('student_face_photo');
+
+  if (startStudentCamBtn) {
+    startStudentCamBtn.addEventListener('click', async () => {
+      try {
+        studentStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 } } });
+        studentVideo.srcObject = studentStream;
+        snapStudentBtn.disabled = false;
+        startStudentCamBtn.classList.replace('btn-outline-purple', 'btn-outline-success');
+        startStudentCamBtn.innerHTML = '<i class="bi bi-camera-video-fill me-1"></i> Camera Ready';
+      } catch (err) {
+        alert('Could not access camera: ' + err.message + '. Please use the Upload Photo tab.');
+      }
+    });
+  }
+
+  if (snapStudentBtn) {
+    snapStudentBtn.addEventListener('click', () => {
+      if (!studentStream) return;
+      studentCanvas.width = studentVideo.videoWidth || 640;
+      studentCanvas.height = studentVideo.videoHeight || 480;
+      const ctx = studentCanvas.getContext('2d');
+      ctx.drawImage(studentVideo, 0, 0, studentCanvas.width, studentCanvas.height);
+      const b64 = studentCanvas.toDataURL('image/jpeg', 0.9);
+      studentImgDataInput.value = b64;
+      if (studentPhotoInput) studentPhotoInput.value = '';
+      studentSnapPreview.classList.remove('d-none');
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,352 @@
+{% extends "student_base.html" %}
+
+{% block student_title %}My Assignments — CampusSync{% endblock %}
+{% block page_heading %}My Assignments{% endblock %}
+{% block breadcrumb_current %}Assignments &amp; Coursework{% endblock %}
+
+{% block student_content %}
+{% set active_nav = 'assignments' %}
+
+<!-- HERO BANNER -->
+<section class="dash-hero-card mb-4">
+  <div class="dash-hero-content">
+    <div class="dash-hero-tag">
+      <i class="bi bi-journal-text me-1"></i> Coursework
+    </div>
+    <h2 class="dash-hero-greeting">
+      Assignments &amp; Submissions
+    </h2>
+    <p class="dash-hero-sub">
+      Class: <strong>{{ student_class['name'] if student_class else 'Enrolled Class' }}</strong> &bull;
+      Completed <strong>{{ completed_count }}</strong> of <strong>{{ assignments|length }}</strong> assignments.
+    </p>
+  </div>
+
+  <div class="dash-hero-badge">
+    <div class="dash-hero-badge-cursive">
+      Timely Submissions &bull; Quality Learning &hearts;
+    </div>
+  </div>
+</section>
+
+<!-- ASSIGNMENTS LIST CARD -->
+<div class="dash-box-card mb-4">
+  <div class="dash-box-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-3">
+      <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+        <i class="bi bi-folder-check"></i>
+      </div>
+      <div>
+        <h2 class="dash-box-title">Coursework Roster</h2>
+        <p class="dash-box-subtitle">All active assignments published for your class</p>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 small">
+        Completed: {{ completed_count }}
+      </span>
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 small">
+        Pending: {{ pending_count }}
+      </span>
+    </div>
+  </div>
+
+  <!-- SUBJECT FILTER PILLS -->
+  {% if enrolled_subjects %}
+  <div class="d-flex flex-wrap gap-2 px-3 pt-3">
+    <a href="{{ url_for('student_assignments') }}"
+      class="badge rounded-pill text-decoration-none px-3 py-2 {% if not selected_subject_id %}bg-primary-purple text-white{% else %}bg-light text-dark border{% endif %}">
+      All Subjects
+    </a>
+    {% for s in enrolled_subjects %}
+    <a href="{{ url_for('student_assignments', subject_id=s['subject_id']) }}"
+      class="badge rounded-pill text-decoration-none px-3 py-2 {% if selected_subject_id == s['subject_id'] %}bg-primary-purple text-white{% else %}bg-light text-dark border{% endif %}">
+      {{ s['subject_name'] }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="table-responsive mt-3">
+    {% if assignments %}
+    <table class="dash-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Subject</th>
+          <th>Assignment Title</th>
+          <th>Due Date</th>
+          <th>Max Marks</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <span class="badge bg-purple-light text-purple-dark border small fw-semibold">
+              {{ a['subject_name'] }}
+            </span>
+          </td>
+          <td>
+            <div class="fw-bold text-navy">{{ a['title'] }}</div>
+            {% if a['description'] %}
+            <div class="text-muted small text-truncate" style="max-width: 250px;">{{ a['description'] }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="small fw-semibold text-secondary">
+              <i class="bi bi-calendar3 me-1"></i>{{ a['due_date'] or 'No deadline' }}
+            </span>
+          </td>
+          <td>
+            <span class="font-monospace fw-bold text-purple-dark">{{ a['max_marks'] }} pts</span>
+          </td>
+          <td>
+            {% if a['status'] == 'Checked' %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+              <i class="bi bi-check-all me-1"></i> Graded: {{ a['marks'] }}/{{ a['max_marks'] }}
+            </span>
+            {% elif a['status'] == 'Submitted' %}
+            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1 small">
+              <i class="bi bi-clock me-1"></i> Submitted
+            </span>
+            {% elif a['status'] == 'Overdue' %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 small">
+              <i class="bi bi-exclamation-octagon me-1"></i> Overdue
+            </span>
+            {% else %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 small">
+              <i class="bi bi-hourglass me-1"></i> Pending
+            </span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-purple py-1 px-3" data-bs-toggle="modal"
+              data-bs-target="#submitModal{{ a['id'] }}">
+              {% if a['submission_id'] %}
+              <i class="bi bi-eye me-1"></i> View / Edit
+              {% else %}
+              <i class="bi bi-upload me-1"></i> Submit
+              {% endif %}
+            </button>
+          </td>
+        </tr>
+
+        <!-- SUBMIT / VIEW MODAL FOR THIS ASSIGNMENT -->
+        <div class="modal fade" id="submitModal{{ a['id'] }}" tabindex="-1"
+          aria-labelledby="submitModalLabel{{ a['id'] }}" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content"
+              style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+              <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="submitModalLabel{{ a['id'] }}">
+                  <i class="bi bi-journal-check text-purple me-2"></i>{{ a['title'] }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+
+              <form method="POST" action="{{ url_for('student_submit_assignment', assignment_id=a['id']) }}"
+                enctype="multipart/form-data">
+                <div class="modal-body">
+                  <div class="bg-light p-3 rounded-3 mb-3 border small">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="text-muted">Subject:</span>
+                      <strong class="text-navy">{{ a['subject_name'] }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="text-muted">Due Date:</span>
+                      <span class="text-secondary fw-semibold">{{ a['due_date'] or 'None' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                      <span class="text-muted">Max Marks:</span>
+                      <span class="fw-bold text-purple-dark">{{ a['max_marks'] }} pts</span>
+                    </div>
+                  </div>
+
+                  {% if a['description'] %}
+                  <div class="mb-3">
+                    <label class="small fw-semibold text-dark">Instructions:</label>
+                    <p class="small text-muted p-2 rounded bg-light border mb-0">{{ a['description'] }}</p>
+                  </div>
+                  {% endif %}
+
+                  {% if a['submission_id'] %}
+                  <div class="alert alert-info py-2 px-3 small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    You submitted this assignment on <strong>{{ a['submitted_at'][:19] }}</strong>.
+                    {% if a['checked'] %}
+                    <div class="mt-1 text-success fw-bold">Evaluation completed: {{ a['marks'] }} / {{ a['max_marks'] }}
+                      marks.</div>
+                    {% else %}
+                    <div class="mt-1">You may upload a new file or text response to update your submission before
+                      grading.</div>
+                    {% endif %}
+                  </div>
+                  {% if a['original_filename'] %}
+                  <div class="small mb-3 text-muted">
+                    Attached File: <span class="badge bg-light text-dark border font-monospace"><i
+                        class="bi bi-file-earmark me-1"></i>{{ a['original_filename'] }}</span>
+                  </div>
+                  {% endif %}
+                  {% endif %}
+
+                  {% if not a['checked'] %}
+                  {% set sub_type = (a['submission_type'] or '')|lower|trim %}
+                  {% set allows_file = (sub_type != 'text response' and sub_type != 'text') %}
+                  {% set allows_text = (sub_type != 'file upload' and sub_type != 'file' and sub_type != 'online_file')
+                  %}
+
+                  <!-- Submission File Input -->
+                  {% if allows_file %}
+                  <div class="form-group-custom mb-3">
+                    <label for="file_{{ a['id'] }}"
+                      class="fw-semibold mb-1 small text-dark d-flex justify-content-between align-items-center">
+                      <span><i class="bi bi-paperclip me-1 text-purple"></i> Upload Document / File</span>
+                      <span class="text-muted fw-normal" style="font-size: 0.75rem;">(PDF, DOC, DOCX, JPG, PNG &bull;
+                        Max 10MB)</span>
+                    </label>
+                    <div class="input-group">
+                      <input type="file" id="file_{{ a['id'] }}" name="file" class="form-control"
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                        onchange="handleStudentFileSelection(this, 'fileInfo_{{ a['id'] }}', 'btnRemove_{{ a['id'] }}', 'btnSubmit_{{ a['id'] }}')">
+                      <button type="button" class="btn btn-outline-danger d-none" id="btnRemove_{{ a['id'] }}"
+                        onclick="clearSelectedStudentFile('file_{{ a['id'] }}', 'fileInfo_{{ a['id'] }}', this, 'btnSubmit_{{ a['id'] }}')"
+                        title="Remove selected file">
+                        <i class="bi bi-x-circle me-1"></i> Remove File
+                      </button>
+                    </div>
+                    <!-- Live File Selection Preview -->
+                    <div id="fileInfo_{{ a['id'] }}" class="mt-2"></div>
+                  </div>
+                  {% endif %}
+
+                  {% if allows_text %}
+                  <div class="form-group-custom mb-2">
+                    <label for="text_{{ a['id'] }}" class="fw-semibold mb-1 small text-dark">
+                      <i class="bi bi-textarea-t me-1 text-purple"></i> Text Response / Notes
+                    </label>
+                    <textarea id="text_{{ a['id'] }}" name="submission_text" class="form-control" rows="4"
+                      placeholder="Write your assignment submission text or notes here...">{{ a['submission_text'] or '' }}</textarea>
+                  </div>
+                  {% else %}
+                  <div class="form-group-custom mb-2">
+                    <label for="text_{{ a['id'] }}" class="fw-semibold mb-1 small text-muted">
+                      Optional Notes for Teacher
+                    </label>
+                    <textarea id="text_{{ a['id'] }}" name="submission_text" class="form-control" rows="2"
+                      placeholder="Add any notes or comments for your teacher...">{{ a['submission_text'] or '' }}</textarea>
+                  </div>
+                  {% endif %}
+                  {% endif %}
+                </div>
+
+                <div class="modal-footer border-0 pt-0">
+                  <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                  {% if not a['checked'] %}
+                  <button type="submit" class="btn-primary-purple py-2 px-4 rounded-pill" style="width: auto;"
+                    id="btnSubmit_{{ a['id'] }}">
+                    <i class="bi bi-cloud-arrow-up-fill me-1"></i> Submit Assignment
+                  </button>
+                  {% endif %}
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-journal-x fs-2 d-block mb-2 opacity-50"></i>
+      No assignments published for your class yet.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function handleStudentFileSelection(input, infoContainerId, removeBtnId, submitBtnId) {
+    const infoContainer = document.getElementById(infoContainerId);
+    const removeBtn = document.getElementById(removeBtnId);
+    const submitBtn = submitBtnId ? document.getElementById(submitBtnId) : null;
+    if (!infoContainer) return;
+
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      const maxSizeBytes = 10 * 1024 * 1024; // 10 MB limit
+      const sizeKb = (file.size / 1024).toFixed(1);
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+      const sizeFormatted = file.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+
+      const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+      const fileExt = file.name.split('.').pop().toLowerCase();
+
+      if (!allowedExtensions.includes(fileExt)) {
+        infoContainer.innerHTML = `
+        <div class="alert alert-danger py-2 px-3 mb-0 small d-flex align-items-center gap-2 border">
+          <i class="bi bi-exclamation-octagon-fill text-danger fs-6"></i>
+          <div>Unsupported format <strong>.${fileExt}</strong>. Allowed formats: <strong>PDF, DOC, DOCX, JPG, PNG</strong>.</div>
+        </div>`;
+        if (removeBtn) removeBtn.classList.remove('d-none');
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
+
+      if (file.size === 0) {
+        infoContainer.innerHTML = `
+        <div class="alert alert-danger py-2 px-3 mb-0 small d-flex align-items-center gap-2 border">
+          <i class="bi bi-exclamation-octagon-fill text-danger fs-6"></i>
+          <div>The selected file is empty (0 bytes). Please choose a valid document.</div>
+        </div>`;
+        if (removeBtn) removeBtn.classList.remove('d-none');
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
+
+      if (file.size > maxSizeBytes) {
+        infoContainer.innerHTML = `
+        <div class="alert alert-danger py-2 px-3 mb-0 small d-flex align-items-center gap-2 border">
+          <i class="bi bi-exclamation-octagon-fill text-danger fs-6"></i>
+          <div>File exceeds 10 MB limit (<strong>${sizeFormatted}</strong>). Please choose a smaller file.</div>
+        </div>`;
+        if (removeBtn) removeBtn.classList.remove('d-none');
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
+
+      // Success preview
+      infoContainer.innerHTML = `
+      <div class="alert alert-success py-2 px-3 mb-0 small d-flex justify-content-between align-items-center border">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-file-earmark-check-fill text-success fs-5"></i>
+          <div>
+            <strong class="text-dark">${file.name}</strong>
+            <span class="badge bg-white text-secondary border ms-2">${sizeFormatted}</span>
+          </div>
+        </div>
+      </div>`;
+      if (removeBtn) removeBtn.classList.remove('d-none');
+      if (submitBtn) submitBtn.disabled = false;
+    } else {
+      infoContainer.innerHTML = '';
+      if (removeBtn) removeBtn.classList.add('d-none');
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function clearSelectedStudentFile(inputId, infoContainerId, removeBtn, submitBtnId) {
+    const input = document.getElementById(inputId);
+    const infoContainer = document.getElementById(infoContainerId);
+    const submitBtn = submitBtnId ? document.getElementById(submitBtnId) : null;
+    if (input) input.value = '';
+    if (infoContainer) infoContainer.innerHTML = '';
+    if (removeBtn) removeBtn.classList.add('d-none');
+    if (submitBtn) submitBtn.disabled = false;
+  }
+</script>
+{% endblock %}

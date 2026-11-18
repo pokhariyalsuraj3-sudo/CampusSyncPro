@@ -1,0 +1,204 @@
+{% extends "student_base.html" %}
+
+{% block student_title %}Settings &amp; Preferences — CampusSync{% endblock %}
+{% block page_heading %}Settings{% endblock %}
+{% block breadcrumb_current %}Preferences &amp; Security{% endblock %}
+
+{% block student_content %}
+{% set active_nav = 'settings' %}
+
+<!-- HERO GREETING BANNER -->
+<section class="dash-hero-card mb-4">
+  <div class="dash-hero-content">
+    <div class="dash-hero-tag">
+      <i class="bi bi-gear-fill me-1"></i> Student Settings
+    </div>
+    <h2 class="dash-hero-greeting">
+      Preferences &amp; Account Security
+    </h2>
+    <p class="dash-hero-sub">
+      Manage your student portal preferences, view security information, and review biometric privacy settings.
+    </p>
+  </div>
+
+  <div class="dash-hero-badge">
+    <div class="dash-hero-badge-cursive">
+      Security &bull; Privacy &bull; Control &hearts;
+    </div>
+  </div>
+</section>
+
+<div class="row g-4 mb-4">
+
+  <!-- LEFT: ACCOUNT SECURITY & AUTHENTICATION -->
+  <div class="col-12 col-lg-6">
+    <div class="dash-box-card h-100">
+      <div class="dash-box-header d-flex align-items-center gap-3">
+        <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+          <i class="bi bi-shield-lock"></i>
+        </div>
+        <div>
+          <h2 class="dash-box-title">Account Security &amp; Access</h2>
+          <p class="dash-box-subtitle">How you authenticate into CampusSync</p>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <div class="alert alert-info py-3 px-3 small mb-4">
+          <i class="bi bi-shield-check me-1 fs-5 align-middle"></i>
+          <strong>Secure Passkey-Free Access:</strong> Your student account is authenticated via your registered
+          institutional Email and active Class Access Code provided by your teacher.
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-muted">Registered Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope"></i></span>
+            <input type="text" class="form-control bg-light text-dark font-monospace" value="{{ student['email'] }}"
+              readonly>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-muted">Enrolled Class</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-mortarboard"></i></span>
+            <input type="text" class="form-control bg-light text-dark"
+              value="{{ student_class['name'] if student_class else 'Not Enrolled' }}" readonly>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold text-muted">Roll Number</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-card-text"></i></span>
+            <input type="text" class="form-control bg-light text-dark font-monospace"
+              value="{{ student['roll_number'] or 'Not Assigned Yet' }}" readonly>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-3 border bg-light small text-muted">
+          <i class="bi bi-key me-1 text-purple-dark"></i>
+          Need to update your login email or transfer classes? Contact your class faculty to generate updated enrollment
+          credentials.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: BIOMETRIC PRIVACY & PORTAL THEME -->
+  <div class="col-12 col-lg-6">
+    <div class="d-flex flex-column gap-4">
+
+      <!-- BIOMETRICS & PRIVACY -->
+      <div class="dash-box-card">
+        <div class="dash-box-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3">
+            <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+              <i class="bi bi-eye"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Face Biometrics &amp; Privacy</h2>
+              <p class="dash-box-subtitle">Biometric data handling &amp; consent policy</p>
+            </div>
+          </div>
+
+          {% if enrollment %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill small">
+            <i class="bi bi-check-circle-fill me-1"></i> Enrolled
+          </span>
+          {% else %}
+          <span
+            class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-1 rounded-pill small">
+            <i class="bi bi-x-circle me-1"></i> Not Enrolled
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="p-4">
+          <p class="small text-muted mb-3" style="line-height: 1.6;">
+            CampusSync complies with educational privacy standards. Facial recognition vectors are generated locally
+            using Discrete Cosine Transform (128-d DCT) feature extraction. Raw video footage is <strong>never</strong>
+            recorded, streamed, or sold to third parties.
+          </p>
+
+          <div class="d-flex justify-content-between align-items-center p-3 rounded-3 border bg-light">
+            <div>
+              <div class="fw-semibold text-dark small">Biometric Face Enrollment</div>
+              <div class="text-muted" style="font-size: 0.78rem;">
+                {{ 'Active (Enrolled on ' + enrollment['enrolled_at'][:10] + ')' if enrollment else 'Not enrolled yet'
+                }}
+              </div>
+            </div>
+            <a href="{{ url_for('student_attendance') }}" class="btn btn-sm btn-outline-purple rounded-pill px-3">
+              <i class="bi bi-camera me-1"></i> Go to Attendance
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- PORTAL PREFERENCES & APPEARANCE -->
+      <div class="dash-box-card">
+        <div class="dash-box-header d-flex align-items-center gap-3">
+          <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+            <i class="bi bi-palette"></i>
+          </div>
+          <div>
+            <h2 class="dash-box-title">Portal Preferences</h2>
+            <p class="dash-box-subtitle">Theme styling and system notifications</p>
+          </div>
+        </div>
+
+        <div class="p-4">
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <div class="fw-semibold text-dark small">Portal Theme</div>
+              <div class="text-muted" style="font-size: 0.78rem;">CampusSync Soft Lavender (#4d3896)</div>
+            </div>
+            <span class="badge rounded-pill px-3 py-2"
+              style="background: var(--bg-lavender); color: var(--primary-purple); border: 1px solid var(--card-border);">
+              <i class="bi bi-circle-fill me-1" style="color: #4d3896;"></i> Lavender
+            </span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div>
+              <div class="fw-semibold text-dark small">Assignment Deadline Reminders</div>
+              <div class="text-muted" style="font-size: 0.78rem;">Highlighted coursework alerts on Dashboard</div>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+              Enabled
+            </span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center py-2">
+            <div>
+              <div class="fw-semibold text-dark small">Department Notice Circulars</div>
+              <div class="text-muted" style="font-size: 0.78rem;">Live feed updates on Notice Board</div>
+            </div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+              Enabled
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- LOGOUT ACTION CARD -->
+<div class="dash-box-card p-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <h5 class="fw-bold text-navy mb-1">Signed In as {{ student['full_name'] }}</h5>
+      <div class="text-muted small">Remember to sign out if you are accessing CampusSync on a shared campus computer.
+      </div>
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger px-4 py-2 rounded-pill fw-semibold">
+      <i class="bi bi-box-arrow-right me-1"></i> Sign Out of Student Portal
+    </a>
+  </div>
+</div>
+{% endblock %}

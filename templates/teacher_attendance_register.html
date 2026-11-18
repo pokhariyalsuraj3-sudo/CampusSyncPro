@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+
+{% block title %}Overall Attendance Register — CampusSync{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Excel-Style Overall Attendance Register Styles */
+  .excel-reg-container {
+    background: #ffffff;
+    border-radius: var(--radius-lg, 16px);
+    border: 1px solid var(--card-border, #e2dcf7);
+    box-shadow: 0 4px 16px rgba(77, 56, 150, 0.05);
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .excel-reg-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 680px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    position: relative;
+    background: #ffffff;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .excel-reg-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.8rem;
+    background: #ffffff;
+  }
+
+  .excel-reg-table th,
+  .excel-reg-table td {
+    border-right: 1px solid #e9ecef;
+    border-bottom: 1px solid #e9ecef;
+    padding: 6px 8px;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  /* Sticky Top Header */
+  .excel-reg-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f6f3fc;
+    color: var(--navy-dark, #1f1841);
+    font-weight: 700;
+  }
+
+  /* Sticky Left Columns */
+  .excel-reg-table .sticky-col-idx {
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    background: #ffffff;
+    width: 44px;
+    min-width: 44px;
+    text-align: center;
+  }
+
+  .excel-reg-table .sticky-col-roll {
+    position: sticky;
+    left: 44px;
+    z-index: 15;
+    background: #ffffff;
+    width: 115px;
+    min-width: 115px;
+    text-align: left;
+    font-family: var(--font-mono, monospace);
+  }
+
+  .excel-reg-table .sticky-col-name {
+    position: sticky;
+    left: 159px;
+    z-index: 15;
+    background: #ffffff;
+    width: 190px;
+    min-width: 190px;
+    text-align: left;
+    box-shadow: 4px 0 6px -2px rgba(77, 56, 150, 0.08);
+  }
+
+  /* Sticky Headers (Intersection of Top Header + Left Columns) */
+  .excel-reg-table thead th.sticky-col-idx {
+    z-index: 25;
+    background: #ece7fb;
+  }
+
+  .excel-reg-table thead th.sticky-col-roll {
+    z-index: 25;
+    background: #ece7fb;
+  }
+
+  .excel-reg-table thead th.sticky-col-name {
+    z-index: 25;
+    background: #ece7fb;
+    box-shadow: 4px 0 6px -2px rgba(77, 56, 150, 0.08);
+  }
+
+  /* Row Hover Highlighting */
+  .excel-reg-table tbody tr:hover td {
+    background-color: #fbf9ff;
+  }
+
+  .excel-reg-table tbody tr:hover .sticky-col-idx,
+  .excel-reg-table tbody tr:hover .sticky-col-roll,
+  .excel-reg-table tbody tr:hover .sticky-col-name {
+    background-color: #f5f0fd;
+  }
+
+  /* Compact Date Column Styling */
+  .th-date-col {
+    width: 46px;
+    min-width: 46px;
+    padding: 4px 2px !important;
+  }
+
+  .th-date-col.active-session-day {
+    background: #eedefc !important;
+  }
+
+  .th-day-num {
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .th-weekday {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  /* Status Badges */
+  .cell-status-p {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 6px;
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 800;
+    font-size: 0.78rem;
+    box-shadow: 0 1px 2px rgba(21, 128, 61, 0.15);
+  }
+
+  .cell-status-a {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    border-radius: 6px;
+    background: #fee2e2;
+    color: #b91c1c;
+    font-weight: 800;
+    font-size: 0.78rem;
+    box-shadow: 0 1px 2px rgba(185, 28, 28, 0.15);
+  }
+
+  .cell-status-none {
+    color: #cbd5e1;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  /* Sticky Summary Columns on Right */
+  .th-summary-col,
+  .td-summary-col {
+    min-width: 72px;
+    width: 72px;
+    font-weight: 700;
+  }
+
+  .col-sum-p {
+    background: #f0fdf4 !important;
+    color: #15803d;
+    font-weight: 800;
+  }
+
+  .col-sum-a {
+    background: #fef2f2 !important;
+    color: #b91c1c;
+    font-weight: 800;
+  }
+
+  .col-sum-pct {
+    background: #faf8ff !important;
+    min-width: 84px;
+    width: 84px;
+  }
+
+  /* Chips and Metric Badges */
+  .reg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    background: #f7f5fd;
+    border: 1px solid var(--card-border, #e2dcf7);
+    font-size: 0.8rem;
+    color: var(--navy-dark, #1f1841);
+  }
+
+  .reg-chip strong {
+    color: var(--primary-purple, #5b32a3);
+    font-weight: 700;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item active">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR -->
+    <header class="dash-topbar py-2 px-3 px-md-4">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" class="dash-search-input" id="global-search-input"
+          placeholder="Search students, roll numbers..." aria-label="Search">
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('teacher_attendance', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '') }}"
+          class="btn btn-sm btn-outline-purple rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm"
+          title="Switch to daily camera attendance scanning">
+          <i class="bi bi-camera-video me-1"></i> Daily Attendance Scan
+        </a>
+
+        <div class="dash-user-pill">
+          <div class="dash-avatar">
+            {{ teacher['full_name'][0] | upper }}
+          </div>
+          <div class="dash-user-meta">
+            <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+            <p class="dash-user-role">{{ teacher['email'] }}</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content px-3 px-md-4 py-3">
+
+      <!-- Breadcrumbs -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+          <li class="breadcrumb-item"><a href="{{ url_for('teacher_dashboard') }}"
+              class="text-decoration-none text-muted">Dashboard</a></li>
+          <li class="breadcrumb-item"><a href="{{ url_for('teacher_attendance') }}"
+              class="text-decoration-none text-muted">Attendance</a></li>
+          <li class="breadcrumb-item active text-purple fw-semibold" aria-current="page">Overall Register</li>
+        </ol>
+      </nav>
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card mb-4 p-4" aria-label="Overview Banner"
+        style="background: linear-gradient(135deg, #4d3896 0%, #31226a 100%);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <div class="dash-breadcrumb text-white-50">
+              <i class="bi bi-table me-1"></i> Monthly Academic Register
+            </div>
+            <h1 class="dash-hero-title text-white mb-1" style="font-size: 1.6rem;">Overall Attendance Register</h1>
+            <p class="dash-hero-subtitle text-white-50 mb-0" style="font-size: 0.9rem;">
+              Complete Excel-style monthly attendance matrix with automated Present, Absent &amp; Percentage
+              calculation.
+            </p>
+          </div>
+
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Previous Month Button -->
+            <a href="{{ url_for('teacher_overall_attendance', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=prev_month, year=prev_year) }}"
+              class="btn btn-sm btn-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
+              id="btn-prev-month" title="View previous month">
+              <i class="bi bi-chevron-left"></i> Prev Month
+            </a>
+
+            <!-- Month Badge -->
+            <span class="badge bg-white text-navy font-monospace px-3 py-2 rounded-pill shadow-sm"
+              style="font-size: 0.9rem;">
+              <i class="bi bi-calendar-month text-purple me-1"></i> {{ month_name }} {{ year }}
+            </span>
+
+            <!-- Next Month Button -->
+            <a href="{{ url_for('teacher_overall_attendance', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=next_month, year=next_year) }}"
+              class="btn btn-sm btn-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
+              id="btn-next-month" title="View next month">
+              Next Month <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- FILTER CONTROLS BAR -->
+      <div class="excel-reg-container mb-4">
+        <form method="GET" action="{{ url_for('teacher_overall_attendance') }}" id="register-filter-form"
+          class="row g-3 align-items-end">
+
+          <!-- Class Selector -->
+          <div class="col-12 col-sm-6 col-md-3">
+            <label for="filter_class_id" class="form-label small fw-bold text-navy mb-1">
+              <i class="bi bi-mortarboard text-purple me-1"></i> Class / Batch
+            </label>
+            <select name="class_id" id="filter_class_id" class="form-select form-select-sm rounded-3 shadow-none"
+              onchange="this.form.submit()">
+              {% for c in classes %}
+              <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{% endif
+                %}>
+                {{ c['name'] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Subject Selector -->
+          <div class="col-12 col-sm-6 col-md-3">
+            <label for="filter_subject_id" class="form-label small fw-bold text-navy mb-1">
+              <i class="bi bi-book text-purple me-1"></i> Subject
+            </label>
+            <select name="subject_id" id="filter_subject_id" class="form-select form-select-sm rounded-3 shadow-none"
+              onchange="this.form.submit()">
+              {% if subjects %}
+              {% for s in subjects %}
+              <option value="{{ s['id'] }}" {% if selected_subject and selected_subject['id']==s['id'] %}selected{%
+                endif %}>
+                {{ s['name'] }}
+              </option>
+              {% endfor %}
+              {% else %}
+              <option value="">No subjects assigned</option>
+              {% endif %}
+            </select>
+          </div>
+
+          <!-- Month Selector -->
+          <div class="col-6 col-sm-4 col-md-2">
+            <label for="filter_month" class="form-label small fw-bold text-navy mb-1">
+              <i class="bi bi-calendar-event text-purple me-1"></i> Month
+            </label>
+            <select name="month" id="filter_month" class="form-select form-select-sm rounded-3 shadow-none"
+              onchange="this.form.submit()">
+              {% for m_num, m_name in months_list %}
+              <option value="{{ m_num }}" {% if month==m_num %}selected{% endif %}>
+                {{ m_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Year Selector -->
+          <div class="col-6 col-sm-4 col-md-2">
+            <label for="filter_year" class="form-label small fw-bold text-navy mb-1">
+              <i class="bi bi-calendar text-purple me-1"></i> Year
+            </label>
+            <select name="year" id="filter_year" class="form-select form-select-sm rounded-3 shadow-none"
+              onchange="this.form.submit()">
+              {% for y in available_years %}
+              <option value="{{ y }}" {% if year==y %}selected{% endif %}>
+                {{ y }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Student Filter Search -->
+          <div class="col-12 col-sm-4 col-md-2">
+            <label for="register-student-search" class="form-label small fw-bold text-navy mb-1">
+              <i class="bi bi-funnel text-purple me-1"></i> Filter Student
+            </label>
+            <input type="text" id="register-student-search" class="form-control form-control-sm rounded-3"
+              placeholder="Name or roll..." autocomplete="off">
+          </div>
+        </form>
+
+        <!-- Summary Metric Chips & Legend -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-3 border-top">
+          <div class="d-flex flex-wrap gap-2">
+            <span class="reg-chip">
+              <i class="bi bi-people-fill text-purple"></i> Enrolled Students: <strong>{{ summary.total_students
+                }}</strong>
+            </span>
+            <span class="reg-chip">
+              <i class="bi bi-calendar-check-fill text-primary"></i> Lectures Conducted: <strong>{{
+                summary.total_sessions }}</strong>
+            </span>
+            <span class="reg-chip">
+              <i class="bi bi-pie-chart-fill text-success"></i> Class Average: <strong>{{ summary.avg_attendance_pct
+                }}%</strong>
+            </span>
+            <span class="reg-chip">
+              <i class="bi bi-check-circle-fill text-success"></i> Total Present Marks: <strong>{{ summary.total_present
+                }}</strong>
+            </span>
+            <span class="reg-chip">
+              <i class="bi bi-x-circle-fill text-danger"></i> Total Absent Marks: <strong>{{ summary.total_absent
+                }}</strong>
+            </span>
+          </div>
+
+          <!-- Legend -->
+          <div class="d-flex align-items-center gap-3 small text-muted">
+            <span class="d-flex align-items-center gap-1">
+              <span class="cell-status-p"
+                style="width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem;">P</span> Present
+            </span>
+            <span class="d-flex align-items-center gap-1">
+              <span class="cell-status-a"
+                style="width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem;">A</span> Absent
+            </span>
+            <span class="d-flex align-items-center gap-1">
+              <span class="cell-status-none" style="font-size: 1rem; line-height: 1;">-</span> No Session / Record
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXCEL-STYLE OVERALL ATTENDANCE REGISTER TABLE -->
+      <div class="excel-reg-container p-3">
+        {% if summary.total_sessions == 0 %}
+        <div class="alert alert-info py-2 px-3 small mb-3 border-0 rounded-3 d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+          <div>
+            No attendance lecture sessions were conducted for <strong>{{ selected_subject['name'] if selected_subject
+              else 'this subject' }}</strong> in <strong>{{ month_name }} {{ year }}</strong>.
+            Sessions recorded on the Daily Attendance page will automatically appear here.
+          </div>
+        </div>
+        {% endif %}
+
+        {% if students %}
+        <div class="excel-reg-wrapper" id="register-scroll-wrapper">
+          <table class="excel-reg-table" id="register-table">
+            <thead>
+              <tr>
+                <th class="sticky-col-idx">#</th>
+                <th class="sticky-col-roll">Roll No.</th>
+                <th class="sticky-col-name">Student Name</th>
+
+                <!-- Date Columns 1..N -->
+                {% for d in days %}
+                <th class="th-date-col {% if d.has_session %}active-session-day{% endif %}"
+                  title="Date: {{ d.date_str }} ({{ d.weekday }}){% if d.has_session %} &bull; Lecture Session Recorded{% endif %}">
+                  <div class="th-day-num {% if d.has_session %}text-purple{% endif %}">{{ d.day }}</div>
+                  <div class="th-weekday">{{ d.weekday }}</div>
+                </th>
+                {% endfor %}
+
+                <!-- End Summary Columns -->
+                <th class="th-summary-col col-sum-p" title="Total Present Sessions">Total P</th>
+                <th class="th-summary-col col-sum-a" title="Total Absent Sessions">Total A</th>
+                <th class="th-summary-col col-sum-pct" title="Attendance Percentage">Att. %</th>
+              </tr>
+            </thead>
+            <tbody id="register-tbody">
+              {% for st in students %}
+              <tr class="student-register-row" data-name="{{ st.full_name|lower }}"
+                data-roll="{{ (st.roll_number or '')|lower }}">
+                <td class="sticky-col-idx text-muted fw-semibold">{{ loop.index }}</td>
+                <td class="sticky-col-roll fw-semibold text-navy">
+                  {% if st.roll_number and st.roll_number != 'Not Assigned' %}
+                  <span class="badge bg-light text-navy border font-monospace py-1 px-1" style="font-size: 0.74rem;">
+                    {{ st.roll_number }}
+                  </span>
+                  {% else %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-1"
+                    style="font-size: 0.7rem;">
+                    Unassigned
+                  </span>
+                  {% endif %}
+                </td>
+                <td class="sticky-col-name">
+                  <div class="fw-bold text-navy text-truncate" style="max-width: 170px;" title="{{ st.full_name }}">
+                    {{ st.full_name }}
+                  </div>
+                  <div class="text-muted text-truncate" style="font-size: 0.7rem; max-width: 170px;"
+                    title="{{ st.email }}">
+                    {{ st.email }}
+                  </div>
+                </td>
+
+                <!-- Status Cells for Each Day -->
+                {% for d in days %}
+                {% set status = st.matrix[d.date_str] %}
+                <td class="{% if d.has_session %}bg-light-subtle{% endif %}">
+                  {% if status == 'P' %}
+                  <span class="cell-status-p" title="Present on {{ d.date_str }}">P</span>
+                  {% elif status == 'A' %}
+                  <span class="cell-status-a" title="Absent on {{ d.date_str }}">A</span>
+                  {% else %}
+                  <span class="cell-status-none" title="No attendance record on {{ d.date_str }}">-</span>
+                  {% endif %}
+                </td>
+                {% endfor %}
+
+                <!-- Summary Values -->
+                <td class="col-sum-p">{{ st.total_present }}</td>
+                <td class="col-sum-a">{{ st.total_absent }}</td>
+                <td class="col-sum-pct">
+                  <span
+                    class="badge rounded-pill {% if st.attendance_pct >= 75 %}bg-success-subtle text-success border border-success-subtle{% elif st.attendance_pct >= 50 %}bg-warning-subtle text-warning-emphasis border border-warning-subtle{% else %}bg-danger-subtle text-danger border border-danger-subtle{% endif %} px-2 py-1"
+                    style="font-size: 0.74rem;">
+                    {{ st.attendance_pct }}%
+                  </span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <!-- Empty State Prompt -->
+        <div class="text-center py-5">
+          <div class="dash-box-header-icon mx-auto mb-3"
+            style="width: 56px; height: 56px; font-size: 1.8rem; background: var(--bg-lavender); color: var(--primary-purple); border-radius: 16px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-mortarboard"></i>
+          </div>
+          <h5 class="fw-bold text-navy mb-1">No Students Enrolled</h5>
+          <p class="text-muted small mb-3" style="max-width: 360px; margin: 0 auto;">
+            No students are currently enrolled in <strong>{{ selected_class['name'] if selected_class else 'this class'
+              }}</strong>.
+            Share your subject code or enroll students from the Teacher Dashboard to generate attendance sheets.
+          </p>
+          <a href="{{ url_for('teacher_dashboard', class_id=selected_class['id'] if selected_class else '') }}"
+            class="btn btn-sm btn-primary-purple rounded-pill px-3 py-2">
+            <i class="bi bi-plus-circle me-1"></i> Enroll Students
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Real-time client-side filter for student rows in register
+  const regSearch = document.getElementById('register-student-search');
+  const globalSearch = document.getElementById('global-search-input');
+
+  function filterRegisterRows(query) {
+    const q = (query || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('.student-register-row');
+    rows.forEach(r => {
+      const name = r.getAttribute('data-name') || '';
+      const roll = r.getAttribute('data-roll') || '';
+      if (!q || name.includes(q) || roll.includes(q)) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  }
+
+  if (regSearch) {
+    regSearch.addEventListener('input', function () {
+      filterRegisterRows(this.value);
+    });
+  }
+
+  if (globalSearch && regSearch) {
+    globalSearch.addEventListener('input', function () {
+      regSearch.value = this.value;
+      filterRegisterRows(this.value);
+    });
+  }
+</script>
+{% endblock %}

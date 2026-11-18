@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+
+{% block title %}Class Notice Board — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item active">
+          <i class="bi bi-megaphone-fill"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR -->
+    <header class="dash-topbar">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" class="dash-search-input" placeholder="Search notices, announcements..." aria-label="Search">
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar">
+          {{ teacher['full_name'][0] | upper }}
+        </div>
+        <div class="dash-user-meta">
+          <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+          <p class="dash-user-role">{{ teacher['email'] }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content">
+
+      <!-- Flash Messages Container -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show mb-4" role="alert">
+        <div>
+          {% if category == 'danger' %}
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% elif category == 'success' %}
+          <i class="bi bi-check-circle-fill me-2"></i>
+          {% elif category == 'warning' %}
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill me-2"></i>
+          {% endif %}
+          {{ message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card" aria-label="Overview Banner">
+        <div class="dash-breadcrumb">
+          <i class="bi bi-house-door-fill"></i> Dashboard &gt; Notice Board
+        </div>
+        <h1 class="dash-hero-title">Class Notice Board</h1>
+        <p class="dash-hero-subtitle">
+          Publish announcements, circulars, and study materials for your enrolled classes.
+        </p>
+
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            Connect, Inform &amp; Inspire &hearts;
+          </div>
+        </div>
+      </section>
+
+      <!-- NOTICE BOARD MAIN CARD -->
+      <section class="dash-box-card mb-4" id="noticeBoardSection">
+        <div class="dash-box-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+              <i class="bi bi-megaphone-fill"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Published Notices</h2>
+              <p class="dash-box-subtitle">Announcements are immediately visible on student portals for the selected
+                classes.</p>
+            </div>
+          </div>
+          <div>
+            <button type="button" class="btn-primary-purple py-2 px-3" id="btn-post-new-notice" data-bs-toggle="modal"
+              data-bs-target="#createNoticeModal" style="width: auto;">
+              <i class="bi bi-plus-circle me-1"></i> Post New Notice
+            </button>
+          </div>
+        </div>
+
+        {% if teacher_notices %}
+        <div class="row g-3 mt-1">
+          {% for n in teacher_notices %}
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 notice-card shadow-sm border"
+              style="border-radius: 16px; border-color: var(--card-border) !important; background: #ffffff;">
+              <div class="card-body d-flex flex-column p-3">
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                  <h5 class="fw-bold text-navy mb-0 fs-6 text-truncate" title="{{ n['title'] }}">{{ n['title'] }}</h5>
+                  <span class="badge rounded-pill px-2 py-1 small"
+                    style="background: var(--bg-lavender); color: var(--primary-purple); border: 1px solid var(--card-border); font-size: 0.72rem; white-space: nowrap;">
+                    <i class="bi bi-calendar3 me-1"></i>{{ n['created_at'][:10] }}
+                  </span>
+                </div>
+
+                <!-- Target Classes Badges -->
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                  {% if n['target_class_names'] %}
+                  {% for cname in n['target_class_names'].split(', ') %}
+                  <span class="badge rounded-pill px-2 py-1"
+                    style="background: #ece7f8; color: var(--primary-purple); font-size: 0.72rem; font-weight: 600;">
+                    <i class="bi bi-mortarboard-fill me-1"></i>{{ cname }}
+                  </span>
+                  {% endfor %}
+                  {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1"
+                    style="font-size: 0.72rem;">No Classes</span>
+                  {% endif %}
+                </div>
+
+                <!-- Message Body -->
+                <div class="text-muted small mb-3 flex-grow-1"
+                  style="white-space: pre-line; word-break: break-word; max-height: 120px; overflow-y: auto;">{{
+                  n['message'] }}</div>
+
+                <!-- Attachment Pill if exists -->
+                {% if n['attachment_path'] %}
+                <div class="p-2 rounded-3 mb-3 d-flex align-items-center justify-content-between"
+                  style="background: var(--bg-lavender-light); border: 1px dashed var(--card-border);">
+                  <div class="d-flex align-items-center gap-2 text-truncate me-2">
+                    {% if n['file_type'] == 'image' %}
+                    <i class="bi bi-image text-purple fs-5"></i>
+                    {% else %}
+                    <i class="bi bi-file-earmark-text text-purple fs-5"></i>
+                    {% endif %}
+                    <span class="small text-navy text-truncate fw-medium"
+                      title="{{ n['original_filename'] or 'Attachment' }}">
+                      {{ n['original_filename'] or 'Attachment' }}
+                    </span>
+                  </div>
+                  <div class="d-flex gap-1 flex-shrink-0">
+                    <a href="{{ url_for('view_notice_file', notice_id=n['id']) }}" target="_blank"
+                      class="btn btn-sm btn-outline-purple py-0 px-2" title="View / Open">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{{ url_for('view_notice_file', notice_id=n['id'], download=1) }}"
+                      class="btn btn-sm btn-outline-purple py-0 px-2" title="Download">
+                      <i class="bi bi-download"></i>
+                    </a>
+                  </div>
+                </div>
+                {% endif %}
+
+                <!-- Action Controls (Edit & Delete) -->
+                <div class="d-flex justify-content-end gap-2 pt-2 border-top"
+                  style="border-color: var(--card-border) !important;">
+                  <button type="button" class="btn btn-sm btn-outline-purple py-1 px-3 rounded-pill"
+                    data-bs-toggle="modal" data-bs-target="#editNoticeModal{{ n['id'] }}">
+                    <i class="bi bi-pencil-square me-1"></i> Edit
+                  </button>
+                  <form method="POST" action="{{ url_for('delete_teacher_notice', notice_id=n['id']) }}"
+                    onsubmit="return confirm('Are you sure you want to delete this notice?');" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-3 rounded-pill">
+                      <i class="bi bi-trash me-1"></i> Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-5">
+          <div class="dash-box-header-icon mx-auto mb-3"
+            style="width: 56px; height: 56px; font-size: 1.6rem; background: var(--bg-lavender); color: var(--primary-purple);">
+            <i class="bi bi-megaphone"></i>
+          </div>
+          <h4 class="fw-bold text-navy mb-1 fs-5">No Notices Published Yet</h4>
+          <p class="text-muted small mx-auto mb-3" style="max-width: 420px;">
+            Keep your students informed about exam dates, timetable updates, assignments, and announcements.
+          </p>
+          <button type="button" class="btn-primary-purple py-2 px-4" id="btn-post-first-notice" data-bs-toggle="modal"
+            data-bs-target="#createNoticeModal" style="width: auto;">
+            <i class="bi bi-plus-circle me-1"></i> Post Your First Notice
+          </button>
+        </div>
+        {% endif %}
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: CREATE NOTICE -->
+<div class="modal fade" id="createNoticeModal" tabindex="-1" aria-labelledby="createNoticeModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1.2rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="createNoticeModalLabel">
+          <i class="bi bi-megaphone-fill text-purple me-2"></i>Post New Class Notice
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('create_teacher_notice') }}" enctype="multipart/form-data">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Publish an announcement or distribute materials to your enrolled classes. Students will immediately see it
+            on their portal.
+          </p>
+
+          <!-- Notice Title -->
+          <div class="mb-3">
+            <label for="notice_title" class="fw-semibold mb-1 small text-dark">Notice Title <span
+                class="text-danger">*</span></label>
+            <input type="text" id="notice_title" name="title" class="custom-input"
+              placeholder="e.g. Mid-Term Examination Schedule Announced" required>
+          </div>
+
+          <!-- Target Classes (Multi-select checkboxes) -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="fw-semibold small text-dark mb-0">Target Class(es) <span
+                  class="text-danger">*</span></label>
+              {% if all_teacher_classes %}
+              <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-purple"
+                onclick="toggleAllNoticeClasses('create_notice_classes', true)">
+                Select All
+              </button>
+              {% endif %}
+            </div>
+
+            {% if all_teacher_classes %}
+            <div id="create_notice_classes" class="p-3 rounded-3 border"
+              style="background: var(--bg-lavender-light); border-color: var(--card-border) !important; max-height: 140px; overflow-y: auto;">
+              <div class="row g-2">
+                {% for c in all_teacher_classes %}
+                <div class="col-12 col-sm-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="class_ids" value="{{ c['id'] }}"
+                      id="create_class_{{ c['id'] }}" checked>
+                    <label class="form-check-label small text-navy fw-medium" for="create_class_{{ c['id'] }}">
+                      {{ c['name'] }}
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning-custom py-2 px-3 mb-0 small">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i> You must first create at least one Class before
+              posting notices.
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Notice Message Body -->
+          <div class="mb-3">
+            <label for="notice_message" class="fw-semibold mb-1 small text-dark">Notice Message <span
+                class="text-danger">*</span></label>
+            <textarea id="notice_message" name="message" class="custom-input" rows="4"
+              placeholder="Enter detailed notice message, guidelines, or instructions for students..."
+              style="height: auto; resize: vertical;" required></textarea>
+          </div>
+
+          <!-- Optional Attachment File -->
+          <div class="mb-2">
+            <label for="notice_attachment" class="fw-semibold mb-1 small text-dark">
+              Attachment <span class="text-muted fw-normal">(Optional — Image or Document)</span>
+            </label>
+            <input type="file" id="notice_attachment" name="attachment" class="form-control form-control-sm"
+              accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+              style="border: 1px solid var(--input-border); border-radius: 8px;">
+            <div class="form-text small text-muted">
+              Supported formats: Images (JPG, JPEG, PNG) &amp; Documents (PDF, DOC, DOCX). Maximum size: 15 MB.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4 rounded-pill" style="width: auto;">
+            <i class="bi bi-send-fill me-1"></i> Publish Notice
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS: EDIT NOTICE (For each notice) -->
+{% if teacher_notices %}
+{% for n in teacher_notices %}
+<div class="modal fade" id="editNoticeModal{{ n['id'] }}" tabindex="-1"
+  aria-labelledby="editNoticeModalLabel{{ n['id'] }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1.2rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="editNoticeModalLabel{{ n['id'] }}">
+          <i class="bi bi-pencil-square text-purple me-2"></i>Edit Class Notice
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('edit_teacher_notice', notice_id=n['id']) }}"
+        enctype="multipart/form-data">
+        <div class="modal-body">
+
+          <!-- Notice Title -->
+          <div class="mb-3">
+            <label for="edit_notice_title_{{ n['id'] }}" class="fw-semibold mb-1 small text-dark">Notice Title <span
+                class="text-danger">*</span></label>
+            <input type="text" id="edit_notice_title_{{ n['id'] }}" name="title" class="custom-input"
+              value="{{ n['title'] }}" required>
+          </div>
+
+          <!-- Target Classes -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="fw-semibold small text-dark mb-0">Target Class(es) <span
+                  class="text-danger">*</span></label>
+              <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none text-purple"
+                onclick="toggleAllNoticeClasses('edit_notice_classes_{{ n['id'] }}', true)">
+                Select All
+              </button>
+            </div>
+            <div id="edit_notice_classes_{{ n['id'] }}" class="p-3 rounded-3 border"
+              style="background: var(--bg-lavender-light); border-color: var(--card-border) !important; max-height: 140px; overflow-y: auto;">
+              <div class="row g-2">
+                {% for c in all_teacher_classes %}
+                <div class="col-12 col-sm-6">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="class_ids" value="{{ c['id'] }}"
+                      id="edit_class_{{ n['id'] }}_{{ c['id'] }}" {% if c['id'] in n['class_id_list'] %}checked{% endif
+                      %}>
+                    <label class="form-check-label small text-navy fw-medium"
+                      for="edit_class_{{ n['id'] }}_{{ c['id'] }}">
+                      {{ c['name'] }}
+                    </label>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Notice Message Body -->
+          <div class="mb-3">
+            <label for="edit_notice_message_{{ n['id'] }}" class="fw-semibold mb-1 small text-dark">Notice Message <span
+                class="text-danger">*</span></label>
+            <textarea id="edit_notice_message_{{ n['id'] }}" name="message" class="custom-input" rows="4"
+              style="height: auto; resize: vertical;" required>{{ n['message'] }}</textarea>
+          </div>
+
+          <!-- Existing Attachment Info / Remove -->
+          {% if n['attachment_path'] %}
+          <div class="p-2 rounded-3 mb-3 border d-flex align-items-center justify-content-between"
+            style="background: var(--bg-lavender-light); border-color: var(--card-border) !important;">
+            <div class="d-flex align-items-center gap-2 text-truncate me-2">
+              <i class="bi bi-paperclip text-purple fs-5"></i>
+              <div>
+                <div class="small fw-semibold text-navy text-truncate">{{ n['original_filename'] or 'Current Attachment'
+                  }}</div>
+                <div class="small text-muted" style="font-size: 0.75rem;">Current attached file</div>
+              </div>
+            </div>
+            <div class="form-check mb-0">
+              <input class="form-check-input" type="checkbox" name="remove_attachment" value="1"
+                id="remove_att_{{ n['id'] }}">
+              <label class="form-check-label small text-danger fw-semibold" for="remove_att_{{ n['id'] }}">
+                Remove attachment
+              </label>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Optional Replace Attachment File -->
+          <div class="mb-2">
+            <label for="edit_notice_attachment_{{ n['id'] }}" class="fw-semibold mb-1 small text-dark">
+              {% if n['attachment_path'] %}Replace Attachment{% else %}Add Attachment{% endif %}
+              <span class="text-muted fw-normal">(Optional)</span>
+            </label>
+            <input type="file" id="edit_notice_attachment_{{ n['id'] }}" name="attachment"
+              class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+              style="border: 1px solid var(--input-border); border-radius: 8px;">
+            <div class="form-text small text-muted">
+              Supported formats: JPG, JPEG, PNG, PDF, DOC, DOCX (Max 15 MB).
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4 rounded-pill" style="width: auto;">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+  // Helper to toggle all checkboxes in notice target class list
+  function toggleAllNoticeClasses(containerId, checkState) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+  }
+</script>
+{% endblock %}

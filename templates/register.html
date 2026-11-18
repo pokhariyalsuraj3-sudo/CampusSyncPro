@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Registration — CampusSync{% endblock %}
+
+{% block content %}
+<main class="page-container">
+  <div class="app-card-wrapper">
+    <div class="portal-card">
+
+      <!-- Left Column: Teacher Portal Highlights -->
+      <section class="hero-card" aria-label="Faculty Information">
+        <div class="hero-branding">
+          <h1 class="hero-title">Campus Sync</h1>
+          <p class="hero-subtitle">Teacher & Faculty Registration</p>
+          <div class="hero-cursive">
+            Empower Students.<br>
+            Simplify Campus Work.
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <img src="{{ url_for('static', filename='images/college_illustration.png') }}" alt="Campus Building"
+            class="college-img" onerror="this.src='{{ url_for('static', filename='images/left_hero.png') }}';">
+          <img src="{{ url_for('static', filename='images/grad_cap.png') }}" alt="Graduation Cap" class="floating-cap">
+        </div>
+
+        <!-- Faculty Portal Benefits -->
+        <div class="features-strip">
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-people-fill"></i>
+            </div>
+            <span class="feature-label">Student<br>Roster</span>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-calendar-check"></i>
+            </div>
+            <span class="feature-label">Class<br>Schedules</span>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-megaphone-fill"></i>
+            </div>
+            <span class="feature-label">Publish<br>Notices</span>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-circle">
+              <i class="bi bi-shield-lock-fill"></i>
+            </div>
+            <span class="feature-label">Secure<br>Access</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Registration Card -->
+      <section class="auth-card" aria-label="Registration Form">
+        <div class="auth-header">
+          <div class="mb-2">
+            <span class="badge-faculty" id="reg-badge-label">{% if active_role == 'student' %}Student Onboarding{% else
+              %}Faculty Onboarding{% endif %}</span>
+          </div>
+          <h2 class="auth-title" id="reg-title">{% if active_role == 'student' %}Student Account Registration{% else
+            %}Teacher
+            Registration{% endif %}</h2>
+          <p class="auth-subtitle" id="reg-subtitle">{% if active_role == 'student' %}Create your student profile and
+            enroll in your first subject{% else %}Create your verified educator account{% endif %}</p>
+        </div>
+
+        <!-- Role Selection Tabs -->
+        <div class="role-tabs" role="tablist">
+          <button type="button" id="reg-student-btn"
+            class="role-tab-btn {% if active_role == 'student' %}active{% endif %}" role="tab"
+            aria-selected="{% if active_role == 'student' %}true{% else %}false{% endif %}">
+            <i class="bi bi-mortarboard"></i> Student
+          </button>
+
+          <button type="button" id="reg-teacher-btn"
+            class="role-tab-btn {% if active_role != 'student' %}active{% endif %}" role="tab"
+            aria-selected="{% if active_role != 'student' %}true{% else %}false{% endif %}">
+            <i class="bi bi-person-video3"></i> Teacher
+          </button>
+        </div>
+
+        <!-- Flash Messages Container -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show" role="alert">
+          <div>
+            {% if category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% elif category == 'success' %}
+            <i class="bi bi-check-circle-fill me-2"></i>
+            {% elif category == 'warning' %}
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill me-2"></i>
+            {% endif %}
+            {{ message }}
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- STUDENT REGISTRATION FORM (First-time account creation & first subject enrollment) -->
+        <div id="student-register-section"
+          style="{% if active_role == 'student' %}display: block;{% else %}display: none;{% endif %}">
+
+          <div class="alert alert-info py-2 px-3 small mb-3 border-0 rounded-3"
+            style="background: var(--bg-lavender); color: var(--navy);">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-info-circle-fill text-purple"></i>
+              <strong>First-Time Student Registration</strong>
+            </div>
+            <div style="font-size: 0.82rem; line-height: 1.35;">
+              Use this form once to register your student profile with your initial Subject Code.
+              If you already have an account, please <a href="{{ url_for('login', role='student') }}"
+                class="text-purple fw-bold text-decoration-none">log in here</a> — you can join additional subjects
+              directly from your dashboard using <em>"Join Subject with Code"</em>.
+            </div>
+          </div>
+
+          <form id="student-register-form" method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="role" value="student">
+
+            <!-- Field 1: Full Name -->
+            <div class="form-group-custom">
+              <label for="student_full_name" class="visually-hidden">Full Name</label>
+              <div class="input-with-icon">
+                <i class="bi bi-person input-icon-left"></i>
+                <input type="text" id="student_full_name" name="full_name" class="custom-input"
+                  placeholder="Full Name (e.g. Alice Smith)" value="{{ full_name if active_role == 'student' else '' }}"
+                  autocomplete="name" required>
+              </div>
+            </div>
+
+            <!-- Field 2: Email Address -->
+            <div class="form-group-custom">
+              <label for="student_reg_email" class="visually-hidden">Email Address</label>
+              <div class="input-with-icon">
+                <i class="bi bi-envelope input-icon-left"></i>
+                <input type="email" id="student_reg_email" name="email" class="custom-input"
+                  placeholder="Email Address (e.g. alice@student.edu)"
+                  value="{{ email if active_role == 'student' else '' }}" autocomplete="email" required>
+              </div>
+            </div>
+
+            <!-- Field 3: Create Password -->
+            <div class="form-group-custom">
+              <label for="student_password" class="visually-hidden">Create Password</label>
+              <div class="input-with-icon">
+                <i class="bi bi-lock input-icon-left"></i>
+                <input type="password" id="student_password" name="password" class="custom-input"
+                  placeholder="Create Password (min. 6 characters)" autocomplete="new-password" minlength="6" required>
+                <button type="button" class="toggle-pwd-btn" data-target="student_password"
+                  aria-label="Toggle password visibility">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="input-helper-text">
+                Password must contain at least 6 characters.
+              </div>
+            </div>
+
+            <!-- Field 4: Initial Subject Code -->
+            <div class="form-group-custom">
+              <label for="student_reg_class_code" class="visually-hidden">First Subject Code</label>
+              <div class="input-with-icon">
+                <i class="bi bi-key input-icon-left"></i>
+                <input type="text" id="student_reg_class_code" name="class_code"
+                  class="custom-input font-monospace text-uppercase" placeholder="Initial Subject Code (from teacher)"
+                  value="{{ class_code or '' }}" autocomplete="off">
+              </div>
+              <div class="input-helper-text">
+                Enter your initial subject code. Additional subjects can be joined after login from your dashboard.
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple mt-3">
+              Register Student Account <i class="bi bi-arrow-right"></i>
+            </button>
+          </form>
+
+          <div class="auth-footer-links">
+            Already registered your student account? <a href="{{ url_for('login', role='student') }}"
+              class="auth-link">Login here</a>
+          </div>
+        </div>
+
+        <!-- TEACHER REGISTRATION FORM (Existing Faculty Account Creation) -->
+        <div id="teacher-register-section"
+          style="{% if active_role != 'student' %}display: block;{% else %}display: none;{% endif %}">
+          <form id="teacher-register-form" method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="role" value="teacher">
+
+            <!-- Field 1: Full Name -->
+            <div class="form-group-custom">
+              <label for="reg_full_name" class="visually-hidden">Full Name</label>
+              <div class="input-with-icon">
+                <i class="bi bi-person input-icon-left"></i>
+                <input type="text" id="reg_full_name" name="full_name" class="custom-input"
+                  placeholder="Full Name (e.g. Dr. Alan Turing)"
+                  value="{{ full_name if active_role != 'student' else '' }}" autocomplete="name" required>
+              </div>
+            </div>
+
+            <!-- Field 2: Email Address -->
+            <div class="form-group-custom">
+              <label for="reg_email" class="visually-hidden">Email Address</label>
+              <div class="input-with-icon">
+                <i class="bi bi-envelope input-icon-left"></i>
+                <input type="email" id="reg_email" name="email" class="custom-input"
+                  placeholder="Email Address (e.g. alan@university.edu)"
+                  value="{{ email if active_role != 'student' else '' }}" autocomplete="email" required>
+              </div>
+            </div>
+
+            <!-- Field 3: Create Password -->
+            <div class="form-group-custom">
+              <label for="reg_password" class="visually-hidden">Create Password</label>
+              <div class="input-with-icon">
+                <i class="bi bi-lock input-icon-left"></i>
+                <input type="password" id="reg_password" name="password" class="custom-input"
+                  placeholder="Create Password (min. 8 characters)" autocomplete="new-password" minlength="8" required>
+                <button type="button" class="toggle-pwd-btn" data-target="reg_password"
+                  aria-label="Toggle password visibility">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div id="pwd-length-feedback" class="input-helper-text">
+                Password must contain at least 8 characters.
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple mt-3">
+              Create Teacher Account <i class="bi bi-arrow-right"></i>
+            </button>
+          </form>
+
+          <div class="auth-footer-links">
+            Already have an account? <a href="{{ url_for('login', role='teacher') }}" class="auth-link">Login here</a>
+          </div>
+        </div>
+
+        <div class="admin-contact">
+          Institutional access verified by <a href="mailto:admin@campussync.edu" class="auth-link">Campus
+            Administration</a>.
+        </div>
+      </section>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          const studentBtn = document.getElementById('reg-student-btn');
+          const teacherBtn = document.getElementById('reg-teacher-btn');
+          const studentSec = document.getElementById('student-register-section');
+          const teacherSec = document.getElementById('teacher-register-section');
+          const badgeLabel = document.getElementById('reg-badge-label');
+          const titleElem = document.getElementById('reg-title');
+          const subtitleElem = document.getElementById('reg-subtitle');
+
+          function setRegRole(role) {
+            if (role === 'student') {
+              if (studentBtn) studentBtn.classList.add('active');
+              if (teacherBtn) teacherBtn.classList.remove('active');
+              if (studentSec) studentSec.style.display = 'block';
+              if (teacherSec) teacherSec.style.display = 'none';
+              if (badgeLabel) badgeLabel.textContent = 'Student Onboarding';
+              if (titleElem) titleElem.textContent = 'Student Account Registration';
+              if (subtitleElem) subtitleElem.textContent = 'Create your student profile and enroll in your first subject';
+              if (window.history.replaceState) {
+                const u = new URL(window.location);
+                u.searchParams.set('role', 'student');
+                window.history.replaceState({}, '', u);
+              }
+            } else {
+              if (teacherBtn) teacherBtn.classList.add('active');
+              if (studentBtn) studentBtn.classList.remove('active');
+              if (teacherSec) teacherSec.style.display = 'block';
+              if (studentSec) studentSec.style.display = 'none';
+              if (badgeLabel) badgeLabel.textContent = 'Faculty Onboarding';
+              if (titleElem) titleElem.textContent = 'Teacher Registration';
+              if (subtitleElem) subtitleElem.textContent = 'Create your verified educator account';
+              if (window.history.replaceState) {
+                const u = new URL(window.location);
+                u.searchParams.set('role', 'teacher');
+                window.history.replaceState({}, '', u);
+              }
+            }
+          }
+
+          if (studentBtn) {
+            studentBtn.addEventListener('click', function (e) {
+              e.preventDefault();
+              setRegRole('student');
+            });
+          }
+          if (teacherBtn) {
+            teacherBtn.addEventListener('click', function (e) {
+              e.preventDefault();
+              setRegRole('teacher');
+            });
+          }
+        });
+      </script>
+
+    </div>
+  </div>
+</main>
+{% endblock %}

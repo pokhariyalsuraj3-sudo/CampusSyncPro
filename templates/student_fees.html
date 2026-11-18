@@ -1,0 +1,401 @@
+{% extends "student_base.html" %}
+
+{% block student_title %}Fees Structure &amp; Payments — CampusSync{% endblock %}
+{% block page_heading %}Fees Structure{% endblock %}
+{% block breadcrumb_current %}Fees &amp; Payments{% endblock %}
+
+{% block student_content %}
+{% set active_nav = 'fees' %}
+
+<style>
+  .fee-card {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 18px;
+    box-shadow: 0 4px 14px rgba(77, 56, 150, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .fee-card:hover {
+    box-shadow: 0 6px 20px rgba(77, 56, 150, 0.08);
+  }
+
+  .btn-primary-purple {
+    background: var(--primary-purple);
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: background 0.2s ease;
+  }
+
+  .btn-primary-purple:hover {
+    background: var(--primary-purple-hover, #3f2d7d);
+    color: #ffffff;
+  }
+
+  .btn-outline-purple {
+    border: 1.5px solid var(--primary-purple);
+    color: var(--primary-purple);
+    background: transparent;
+    font-weight: 600;
+  }
+
+  .btn-outline-purple:hover {
+    background: var(--primary-purple);
+    color: #ffffff;
+  }
+
+  .stat-pill {
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 0.85rem 1.25rem;
+    box-shadow: 0 2px 8px rgba(77, 56, 150, 0.04);
+  }
+
+  .qr-box {
+    background: #faf9ff;
+    border: 1.5px dashed #cfc6ea;
+    border-radius: 16px;
+    padding: 1.25rem;
+    text-align: center;
+  }
+</style>
+
+<!-- HERO GREETING BANNER -->
+<section class="dash-hero-card mb-4">
+  <div class="dash-hero-content">
+    <div class="dash-hero-tag">
+      <i class="bi bi-currency-rupee me-1"></i> Fee Management
+    </div>
+    <h2 class="dash-hero-greeting">
+      Fees Structure &amp; Payments
+    </h2>
+    <p class="dash-hero-sub">
+      Class: <strong>{{ student_class['name'] if student_class else 'Not Enrolled' }}</strong> &bull;
+      Roll Number: <strong>{{ student['roll_number'] or 'Not Assigned Yet' }}</strong> &bull;
+      Session: <strong>{{ selected_session }}</strong>
+    </p>
+  </div>
+
+  <div class="dash-hero-badge d-flex align-items-center">
+    <form method="GET" action="{{ url_for('student_fees') }}"
+      class="d-inline-flex align-items-center gap-2 bg-white px-3 py-2 rounded-3 shadow-sm border">
+      <label for="session" class="small fw-bold text-dark mb-0">
+        <i class="bi bi-calendar3 text-purple-dark"></i> Session:
+      </label>
+      <select id="session" name="session" class="form-select form-select-sm border-0 fw-semibold text-purple-dark"
+        style="width: auto; background-color: transparent;" onchange="this.form.submit()">
+        {% for s in academic_sessions %}
+        <option value="{{ s }}" {% if selected_session==s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+</section>
+
+<!-- Summary Metrics Bar -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-pill text-center">
+      <div class="text-muted small fw-semibold mb-1">Total Fee Amount</div>
+      <div class="fs-4 fw-bold font-monospace" style="color: var(--primary-purple);">
+        ₹{{ "{:,.2f}".format(total_fees_amount) }}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill text-center">
+      <div class="text-muted small fw-semibold mb-1">Paid &amp; Verified</div>
+      <div class="fs-4 fw-bold font-monospace text-success">
+        ₹{{ "{:,.2f}".format(paid_amount) }}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill text-center">
+      <div class="text-muted small fw-semibold mb-1">Pending Verification</div>
+      <div class="fs-4 fw-bold font-monospace text-warning-emphasis">
+        {{ pending_count }} Fee{{ 's' if pending_count != 1 else '' }}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-pill text-center">
+      <div class="text-muted small fw-semibold mb-1">Not Paid / Due</div>
+      <div class="fs-4 fw-bold font-monospace text-danger">
+        {{ not_paid_count + rejected_count }} Fee{{ 's' if (not_paid_count + rejected_count) != 1 else '' }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN FEE ITEMS CONTENT -->
+{% if not student_class %}
+<div class="card fee-card p-5 text-center text-muted">
+  <i class="bi bi-mortarboard fs-1 d-block mb-3 text-purple"></i>
+  <h5 class="fw-bold text-dark">No Class Enrolled</h5>
+  <p class="mb-0">You are currently not enrolled in any class. Please contact the administrator or class teacher.</p>
+</div>
+{% elif not fee_items %}
+<div class="card fee-card p-5 text-center text-muted">
+  <i class="bi bi-info-circle fs-1 d-block mb-3 text-purple"></i>
+  <h5 class="fw-bold text-dark">No Fees Published</h5>
+  <p class="mb-0">
+    No fee structure has been published for <strong>{{ student_class['name'] }}</strong> in academic session <strong>{{
+      selected_session }}</strong>.
+  </p>
+</div>
+{% else %}
+
+<div class="d-flex flex-column gap-4">
+  {% for item in fee_items %}
+  <div class="card fee-card p-4">
+    <!-- Fee Item Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3 gap-2">
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge rounded-circle p-2" style="background: var(--bg-lavender); color: var(--primary-purple);">
+            <i class="bi bi-cash-stack fs-5"></i>
+          </span>
+          <div>
+            <h4 class="fw-bold mb-0 text-navy">{{ item['fee_title'] }}</h4>
+            <div class="text-muted small">Academic Session: {{ item['academic_session'] }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end">
+          <div class="text-muted small">Fee Amount</div>
+          <div class="fs-4 fw-bold font-monospace" style="color: var(--primary-purple);">
+            ₹{{ "{:,.2f}".format(item['amount']) }}
+          </div>
+        </div>
+
+        <!-- STATUS BADGE -->
+        <div>
+          {% if item['payment_status'] == 'Paid' %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 fs-6">
+            <i class="bi bi-check-circle-fill me-1"></i> Paid
+          </span>
+          {% elif item['payment_status'] == 'Pending' %}
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 fs-6">
+            <i class="bi bi-clock-history me-1"></i> Pending Verification
+          </span>
+          {% elif item['payment_status'] == 'Rejected' %}
+          <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6">
+            <i class="bi bi-x-circle-fill me-1"></i> Rejected
+          </span>
+          {% else %}
+          <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 fs-6">
+            <i class="bi bi-dash-circle me-1"></i> Not Paid
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Fee Details & Payment Actions Grid -->
+    <div class="row g-4 align-items-center">
+
+      <!-- Left: Payment QR Code Section -->
+      <div class="col-12 col-md-5">
+        <div class="qr-box">
+          <h6 class="fw-bold text-dark mb-2">
+            <i class="bi bi-qr-code text-purple me-1"></i> Scan &amp; Pay via UPI
+          </h6>
+          {% if qr_code %}
+          <div class="my-2">
+            <img src="{{ url_for('get_qr_image', qr_id=qr_code['id']) }}" alt="Payment QR Code"
+              class="img-fluid rounded-3 border bg-white shadow-sm p-2"
+              style="max-width: 190px; max-height: 190px; object-fit: contain;">
+          </div>
+          <div class="small text-muted mt-2">
+            Scan with any UPI app (GPay, PhonePe, Paytm, BHIM) to transfer exactly <strong>₹{{
+              "{:,.2f}".format(item['amount']) }}</strong>.
+          </div>
+          {% if qr_code['qr_data'] %}
+          <div class="mt-2 pt-2 border-top">
+            <div class="text-muted" style="font-size: 0.75rem;">QR Reference / UPI Info:</div>
+            <div class="font-monospace text-truncate px-2 py-1 bg-white rounded border small"
+              title="{{ qr_code['qr_data'] }}">
+              {{ qr_code['qr_data'] }}
+            </div>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="py-4 text-muted">
+            <i class="bi bi-qr-code-scan fs-1 d-block mb-2 opacity-50"></i>
+            <div class="small">No payment QR code uploaded yet by your class teacher.</div>
+            <div class="small mt-1 text-secondary">Please contact your teacher for payment instructions.</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Right: Status / Transaction ID Submission Section -->
+      <div class="col-12 col-md-7">
+
+        {% if item['payment_status'] == 'Paid' %}
+        <!-- PAID STATE -->
+        <div class="p-4 rounded-4 border" style="background: #f2fbf6; border-color: #c3e6cb !important;">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center"
+              style="width: 44px; height: 44px; flex-shrink: 0;">
+              <i class="bi bi-check-lg fs-4"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-success mb-0">Payment Verified &amp; Completed</h5>
+              <div class="text-muted small">Your payment has been confirmed by your class teacher.</div>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-3 border mb-2">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Verified Amount:</span>
+              <span class="fw-bold font-monospace text-success">₹{{ "{:,.2f}".format(item['amount']) }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Transaction Reference:</span>
+              <span class="fw-bold font-monospace text-dark">{{ item['transaction_ref'] or 'N/A' }}</span>
+            </div>
+            {% if item['payment_date'] %}
+            <div class="d-flex justify-content-between">
+              <span class="text-muted small">Payment Date:</span>
+              <span class="text-dark small">{{ item['payment_date'] }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% elif item['payment_status'] == 'Pending' %}
+        <!-- PENDING STATE -->
+        <div class="p-4 rounded-4 border" style="background: #fffcf0; border-color: #ffe8a1 !important;">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center"
+              style="width: 44px; height: 44px; flex-shrink: 0;">
+              <i class="bi bi-clock-history fs-4"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-warning-emphasis mb-0">Payment Verification Pending</h5>
+              <div class="text-muted small">Your transaction ID has been recorded and is awaiting teacher verification.
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-3 rounded-3 border mb-2">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Submitted Reference:</span>
+              <span class="fw-bold font-monospace text-dark">{{ item['transaction_ref'] }}</span>
+            </div>
+            {% if item['submitted_at'] %}
+            <div class="d-flex justify-content-between">
+              <span class="text-muted small">Submitted At:</span>
+              <span class="text-muted small">{{ item['submitted_at'] }}</span>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="small text-muted">
+            <i class="bi bi-info-circle me-1 text-warning-emphasis"></i>
+            The class teacher will check their bank / UPI statement to verify your transaction. Once verified, your
+            status will update to <strong>Paid</strong>.
+          </div>
+        </div>
+
+        {% elif item['payment_status'] == 'Rejected' %}
+        <!-- REJECTED STATE (ALLOWS RESUBMISSION) -->
+        <div class="p-4 rounded-4 border mb-3" style="background: #fff5f5; border-color: #f5c2c7 !important;">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center"
+              style="width: 44px; height: 44px; flex-shrink: 0;">
+              <i class="bi bi-exclamation-octagon fs-4"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-danger mb-0">Payment Verification Rejected</h5>
+              <div class="text-muted small">Your previous submission could not be verified by the teacher.</div>
+            </div>
+          </div>
+
+          <div class="alert alert-danger py-2 px-3 small mb-3">
+            <strong>Teacher's Reason:</strong> {{ item['rejection_reason'] or 'Transaction could not be verified in
+            bank/UPI records.' }}
+          </div>
+
+          <div class="text-muted small mb-2">
+            Previous Transaction ID: <span class="font-monospace fw-semibold">{{ item['transaction_ref'] }}</span>
+          </div>
+        </div>
+
+        <!-- Resubmission Form -->
+        <div class="p-3 bg-white rounded-3 border">
+          <h6 class="fw-bold text-navy mb-2">
+            <i class="bi bi-arrow-repeat text-purple me-1"></i> Resubmit Corrected Transaction Reference
+          </h6>
+          <p class="text-muted small mb-3">
+            Please double check the 12-digit UPI reference / UTR number in your payment app and submit it again below:
+          </p>
+
+          <form method="POST" action="{{ url_for('student_submit_fee_transaction') }}">
+            <input type="hidden" name="fee_structure_id" value="{{ item['fee_id'] }}">
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark">UPI Transaction ID / UTR No. *</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-hash"></i></span>
+                <input type="text" name="transaction_ref" class="form-control font-monospace"
+                  placeholder="e.g. 12-digit UPI Ref / UTR No." required pattern=".*\S+.*">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-purple py-2 px-4 w-100">
+              <i class="bi bi-send-check me-1"></i> Resubmit Transaction ID
+            </button>
+          </form>
+        </div>
+
+        {% else %}
+        <!-- NOT PAID STATE (INITIAL SUBMISSION) -->
+        <div class="p-4 bg-white rounded-4 border">
+          <h5 class="fw-bold text-navy mb-2">
+            <i class="bi bi-receipt-cutoff text-purple me-2"></i>Submit Transaction Reference
+          </h5>
+          <p class="text-muted small mb-3">
+            Pay <strong>₹{{ "{:,.2f}".format(item['amount']) }}</strong> using your UPI app (GPay, PhonePe, Paytm, etc.)
+            by scanning the teacher's QR code on the left, then paste your 12-digit UPI Transaction ID or UTR number
+            below:
+          </p>
+
+          <form method="POST" action="{{ url_for('student_submit_fee_transaction') }}">
+            <input type="hidden" name="fee_structure_id" value="{{ item['fee_id'] }}">
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold text-dark">UPI Transaction ID / UTR No. *</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-hash"></i></span>
+                <input type="text" name="transaction_ref" class="form-control font-monospace"
+                  placeholder="e.g. 431289104829 or UPI Reference No." required pattern=".*\S+.*">
+              </div>
+              <div class="form-text small text-muted">
+                This reference appears in your payment confirmation screen or bank statement.
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-purple py-2 px-4 w-100">
+              <i class="bi bi-send-check me-1"></i> Submit Transaction ID for Verification
+            </button>
+          </form>
+        </div>
+        {% endif %}
+
+      </div>
+
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% endif %}
+{% endblock %}

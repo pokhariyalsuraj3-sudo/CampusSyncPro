@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable &amp; Allocations — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item active">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR WITH SEARCH -->
+    <header class="dash-topbar">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" class="dash-search-input" placeholder="Search timetable subjects, faculty..."
+          aria-label="Search">
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar">
+          {{ teacher['full_name'][0] | upper }}
+        </div>
+        <div class="dash-user-meta">
+          <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+          <p class="dash-user-role">{{ teacher['email'] }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content">
+
+      <!-- Flash Messages Container -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show mb-4" role="alert">
+        <div>
+          {% if category == 'danger' %}
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% elif category == 'success' %}
+          <i class="bi bi-check-circle-fill me-2"></i>
+          {% elif category == 'warning' %}
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill me-2"></i>
+          {% endif %}
+          {{ message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card mb-4" aria-label="Overview Banner">
+        <div class="dash-breadcrumb">
+          <span>Dashboard</span>
+          <i class="bi bi-chevron-right" style="font-size: 0.75rem;"></i>
+          <strong>Time Table</strong>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div>
+            <h1 class="dash-hero-title mb-1">Class Time Table &amp; Allocations</h1>
+            <p class="dash-hero-subtitle mb-0">
+              Interactive Excel-style schedule planner with period timings and faculty mapping.
+            </p>
+          </div>
+
+          <div class="d-none d-lg-block">
+            <div class="dash-pill-stat">
+              <i class="bi bi-mortarboard text-primary fs-5"></i>
+              <div>
+                <span class="small text-muted d-block" style="font-size: 0.75rem;">Active Class</span>
+                <strong class="text-navy-dark">{{ selected_year }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FORM WRAPPING TIMETABLE & ALLOCATIONS -->
+      <form method="POST" action="{{ url_for('save_timetable_route') }}" id="timetableForm">
+        <input type="hidden" name="class_name" value="{{ selected_year }}">
+
+        <!-- CLASS SWITCHER & TOP ACTION BAR -->
+        <div class="dash-box-card mb-4 p-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <span class="fw-bold text-navy-dark me-2">
+                <i class="bi bi-layers-fill text-primary me-1"></i> Class Switcher:
+              </span>
+              <div class="year-switcher-group" role="group" aria-label="Class Switcher">
+                {% for yr in available_years %}
+                <a href="{{ url_for('teacher_timetable', year=yr) }}"
+                  class="btn-year-switch {% if selected_year == yr %}active{% endif %}">
+                  <i class="bi bi-mortarboard-fill me-1"></i> {{ yr }}
+                </a>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <span class="small text-muted d-none d-sm-inline">
+                <i class="bi bi-info-circle me-1"></i> Changes save to SQLite
+              </span>
+              <button type="submit" class="btn-primary-purple py-2 px-4 shadow-sm" style="width: auto;">
+                <i class="bi bi-floppy2-fill me-1"></i> Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXCEL-STYLE TIMETABLE CARD -->
+        <div class="dash-box-card mb-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              <div class="dash-box-header-icon" style="width: 36px; height: 36px; font-size: 1.15rem;">
+                <i class="bi bi-table"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title fs-5 mb-0">Weekly Timetable — {{ selected_year }}</h2>
+                <p class="dash-box-subtitle mb-0">
+                  Editable spreadsheet view. Click any subject or timing cell to modify.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <span class="badge-status-blue py-1 px-3" style="font-size: 0.8rem;">
+                <i class="bi bi-clock-history me-1"></i> 3 Periods &bull; Lunch &bull; 4 Periods
+              </span>
+            </div>
+          </div>
+
+          <!-- TABLE WRAPPER -->
+          <div class="excel-timetable-wrapper">
+            <table class="dash-table excel-timetable-table">
+              <thead>
+                <tr>
+                  <!-- 1. DAY COLUMN -->
+                  <th class="timetable-header-day">
+                    <div class="period-title">Day</div>
+                    <div class="small text-muted" style="font-size: 0.7rem; font-weight: 500;">Weekly</div>
+                  </th>
+
+                  <!-- 2. PERIOD I -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period I</div>
+                    <input type="text" name="time_period_1" value="{{ timings['period_1'] }}" class="period-time-input"
+                      placeholder="09:00 - 10:00 AM" title="Click to edit Period I time" aria-label="Period I Time">
+                  </th>
+
+                  <!-- 3. PERIOD II -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period II</div>
+                    <input type="text" name="time_period_2" value="{{ timings['period_2'] }}" class="period-time-input"
+                      placeholder="10:00 - 11:00 AM" title="Click to edit Period II time" aria-label="Period II Time">
+                  </th>
+
+                  <!-- 4. PERIOD III -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period III</div>
+                    <input type="text" name="time_period_3" value="{{ timings['period_3'] }}" class="period-time-input"
+                      placeholder="11:00 - 12:00 PM" title="Click to edit Period III time" aria-label="Period III Time">
+                  </th>
+
+                  <!-- 5. LUNCH -->
+                  <th class="timetable-header-col timetable-lunch-col">
+                    <div class="period-title text-primary">Lunch</div>
+                    <input type="text" name="time_lunch" value="{{ timings['lunch'] }}"
+                      class="period-time-input fw-bold" placeholder="12:00 - 01:00 PM" title="Click to edit Lunch time"
+                      aria-label="Lunch Time">
+                  </th>
+
+                  <!-- 6. PERIOD IV -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period IV</div>
+                    <input type="text" name="time_period_4" value="{{ timings['period_4'] }}" class="period-time-input"
+                      placeholder="01:00 - 02:00 PM" title="Click to edit Period IV time" aria-label="Period IV Time">
+                  </th>
+
+                  <!-- 7. PERIOD V -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period V</div>
+                    <input type="text" name="time_period_5" value="{{ timings['period_5'] }}" class="period-time-input"
+                      placeholder="02:00 - 03:00 PM" title="Click to edit Period V time" aria-label="Period V Time">
+                  </th>
+
+                  <!-- 8. PERIOD VI -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period VI</div>
+                    <input type="text" name="time_period_6" value="{{ timings['period_6'] }}" class="period-time-input"
+                      placeholder="03:00 - 04:00 PM" title="Click to edit Period VI time" aria-label="Period VI Time">
+                  </th>
+
+                  <!-- 9. PERIOD VII -->
+                  <th class="timetable-header-col">
+                    <div class="period-title">Period VII</div>
+                    <input type="text" name="time_period_7" value="{{ timings['period_7'] }}" class="period-time-input"
+                      placeholder="04:00 - 05:00 PM" title="Click to edit Period VII time" aria-label="Period VII Time">
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in timetable %}
+                {% set d = row['day'] %}
+                <tr>
+                  <td class="timetable-day-cell">
+                    {{ d }}
+                  </td>
+
+                  <!-- Period 1 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_1"
+                      value="{{ row['period_1'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 1">
+                  </td>
+
+                  <!-- Period 2 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_2"
+                      value="{{ row['period_2'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 2">
+                  </td>
+
+                  <!-- Period 3 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_3"
+                      value="{{ row['period_3'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 3">
+                  </td>
+
+                  <!-- Lunch Break -->
+                  <td class="timetable-cell timetable-lunch-cell text-center">
+                    <input type="text" class="timetable-input text-center text-muted fw-bold" name="cell_{{ d }}_lunch"
+                      value="{{ row['lunch'] or 'LUNCH' }}" placeholder="LUNCH" aria-label="{{ d }} Lunch">
+                  </td>
+
+                  <!-- Period 4 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_4"
+                      value="{{ row['period_4'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 4">
+                  </td>
+
+                  <!-- Period 5 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_5"
+                      value="{{ row['period_5'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 5">
+                  </td>
+
+                  <!-- Period 6 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_6"
+                      value="{{ row['period_6'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 6">
+                  </td>
+
+                  <!-- Period 7 -->
+                  <td class="timetable-cell">
+                    <input type="text" class="timetable-input" name="cell_{{ d }}_period_7"
+                      value="{{ row['period_7'] }}" placeholder="Subject / Lab" aria-label="{{ d }} Period 7">
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUBJECT – TEACHER ALLOCATION CARD -->
+        <div class="dash-box-card mb-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              <div class="dash-box-header-icon" style="width: 36px; height: 36px; font-size: 1.15rem;">
+                <i class="bi bi-person-lines-fill"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title fs-5 mb-0">Subject – Teacher Allocation</h2>
+                <p class="dash-box-subtitle mb-0">
+                  Faculty and subject mapping for <strong>{{ selected_year }}</strong>. Add or remove rows as needed.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <button type="button" class="btn-secondary-purple py-1 px-3" onclick="addAllocationRow()">
+                <i class="bi bi-plus-circle me-1"></i> Add Allocation
+              </button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="dash-table" id="allocationsTable">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">#</th>
+                  <th>Subject</th>
+                  <th>Teacher Name</th>
+                  <th style="width: 90px; text-align: center;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="allocationsTbody">
+                {% if allocations %}
+                {% for alloc in allocations %}
+                <tr class="alloc-row">
+                  <td class="alloc-index text-muted fw-bold">{{ loop.index }}</td>
+                  <td>
+                    <input type="text" name="alloc_subject[]" class="allocation-input"
+                      value="{{ alloc['subject_name'] }}" placeholder="e.g. Data Structures" required>
+                  </td>
+                  <td>
+                    <input type="text" name="alloc_teacher[]" class="allocation-input"
+                      value="{{ alloc['teacher_name'] }}" placeholder="e.g. Dr. Rajesh Sharma" required>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2"
+                      onclick="removeAllocationRow(this)" title="Remove Allocation" aria-label="Remove Allocation">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr class="alloc-row">
+                  <td class="alloc-index text-muted fw-bold">1</td>
+                  <td>
+                    <input type="text" name="alloc_subject[]" class="allocation-input"
+                      placeholder="e.g. Data Structures" required>
+                  </td>
+                  <td>
+                    <input type="text" name="alloc_teacher[]" class="allocation-input"
+                      placeholder="e.g. Dr. Rajesh Sharma" required>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2"
+                      onclick="removeAllocationRow(this)" title="Remove Allocation" aria-label="Remove Allocation">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- BOTTOM SAVE BUTTON BAR -->
+        <div class="d-flex justify-content-end align-items-center gap-3 pt-2 mb-4">
+          <a href="{{ url_for('teacher_timetable', year=selected_year) }}" class="btn btn-light px-3">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset to Saved
+          </a>
+          <button type="submit" class="btn-primary-purple py-2 px-5 shadow-sm" style="width: auto;">
+            <i class="bi bi-floppy2-fill me-1"></i> Save Timetable &amp; Allocations
+          </button>
+        </div>
+
+      </form>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  function reindexAllocationRows() {
+    const rows = document.querySelectorAll('#allocationsTbody tr.alloc-row');
+    rows.forEach((row, idx) => {
+      const idxCell = row.querySelector('.alloc-index');
+      if (idxCell) {
+        idxCell.textContent = idx + 1;
+      }
+    });
+  }
+
+  function addAllocationRow() {
+    const tbody = document.getElementById('allocationsTbody');
+    if (!tbody) return;
+
+    const rowCount = tbody.querySelectorAll('tr.alloc-row').length + 1;
+    const tr = document.createElement('tr');
+    tr.className = 'alloc-row';
+    tr.innerHTML = `
+      <td class="alloc-index text-muted fw-bold">${rowCount}</td>
+      <td>
+        <input type="text" name="alloc_subject[]" class="allocation-input" placeholder="e.g. Subject Name" required>
+      </td>
+      <td>
+        <input type="text" name="alloc_teacher[]" class="allocation-input" placeholder="e.g. Teacher Name" required>
+      </td>
+      <td class="text-center">
+        <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" onclick="removeAllocationRow(this)" title="Remove Allocation" aria-label="Remove Allocation">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    // Focus the new subject input
+    const newSubInput = tr.querySelector('input[name="alloc_subject[]"]');
+    if (newSubInput) newSubInput.focus();
+  }
+
+  function removeAllocationRow(btn) {
+    const row = btn.closest('tr');
+    const tbody = document.getElementById('allocationsTbody');
+    const totalRows = tbody.querySelectorAll('tr.alloc-row').length;
+
+    if (totalRows <= 1) {
+      // Clear inputs instead of deleting the last remaining row
+      const inputs = row.querySelectorAll('input');
+      inputs.forEach(inp => inp.value = '');
+      return;
+    }
+
+    if (row) {
+      row.remove();
+      reindexAllocationRows();
+    }
+  }
+</script>
+{% endblock %}

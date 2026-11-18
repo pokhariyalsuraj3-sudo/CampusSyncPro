@@ -1,0 +1,711 @@
+{% extends "base.html" %}
+
+{% block title %}Written Test Management — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item active">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR -->
+    <header class="dash-topbar">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" class="dash-search-input" placeholder="Search tests, subjects, students..."
+          aria-label="Search">
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar">
+          {{ teacher['full_name'][0] | upper }}
+        </div>
+        <div class="dash-user-meta">
+          <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+          <p class="dash-user-role">{{ teacher['email'] }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content">
+
+      <!-- Flash Messages Container -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show mb-4" role="alert">
+        <div>
+          {% if category == 'danger' %}
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% elif category == 'success' %}
+          <i class="bi bi-check-circle-fill me-2"></i>
+          {% elif category == 'warning' %}
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill me-2"></i>
+          {% endif %}
+          {{ message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card" aria-label="Overview Banner">
+        <div class="dash-breadcrumb">
+          <i class="bi bi-house-door-fill"></i> Dashboard &gt; Written Tests
+        </div>
+        <h1 class="dash-hero-title">Written Test Management</h1>
+        <p class="dash-hero-subtitle">
+          Create written classroom tests and record evaluated student marks.
+        </p>
+
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            Assess, Evaluate &amp; Excel &hearts;
+          </div>
+        </div>
+      </section>
+
+      <!-- STAT SUMMARY CARDS ROW -->
+      <div class="stat-pill-row">
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['total_tests'] }}</div>
+            <div class="stat-pill-label">Total Tests</div>
+          </div>
+          <div class="stat-pill-icon purple">
+            <i class="bi bi-pencil-square"></i>
+          </div>
+        </div>
+
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['total_evaluated'] }}</div>
+            <div class="stat-pill-label">Marks Evaluated</div>
+          </div>
+          <div class="stat-pill-icon blue">
+            <i class="bi bi-clipboard-check-fill"></i>
+          </div>
+        </div>
+
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['total_classes_tested'] }}</div>
+            <div class="stat-pill-label">Classes Tested</div>
+          </div>
+          <div class="stat-pill-icon green">
+            <i class="bi bi-building"></i>
+          </div>
+        </div>
+
+        <div class="stat-pill-card">
+          <div>
+            <div class="stat-pill-val">{{ stats['average_score'] }}</div>
+            <div class="stat-pill-label">Average Score</div>
+          </div>
+          <div class="stat-pill-icon amber">
+            <i class="bi bi-graph-up"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREATE WRITTEN TEST FORM (Top Grid) -->
+      <div class="dash-grid-top mb-4">
+
+        <!-- LEFT: CREATE TEST FORM -->
+        <div class="dash-box-card">
+          <div class="dash-box-header">
+            <div class="dash-box-header-icon">
+              <i class="bi bi-file-earmark-plus-fill"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Create Written Test</h2>
+              <p class="dash-box-subtitle">Schedule an in-class written test for a class and subject.</p>
+            </div>
+          </div>
+
+          <form method="POST" action="{{ url_for('create_test_route') }}">
+
+            <!-- Field 1 & 2: Class & Subject Selectors -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="test_class_select" class="form-label small fw-bold text-navy-dark">1. Class</label>
+                <select id="test_class_select" name="class_id" class="dash-select-custom py-2"
+                  onchange="onTestClassChange(this.value)" required>
+                  {% if not classes %}
+                  <option value="">No classes available</option>
+                  {% endif %}
+                  {% for c in classes %}
+                  <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{%
+                    endif %}>
+                    {{ c['name'] }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label for="test_subject_select" class="form-label small fw-bold text-navy-dark">2. Subject</label>
+                <select id="test_subject_select" name="subject_id" class="dash-select-custom py-2"
+                  onchange="onTestSubjectChange(this.value)" required>
+                  {% if not subjects %}
+                  <option value="">No subjects for this class</option>
+                  {% endif %}
+                  {% for s in subjects %}
+                  <option value="{{ s['id'] }}" {% if selected_subject and selected_subject['id']==s['id'] %}selected{%
+                    endif %}>
+                    {{ s['name'] }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            <!-- Field 3: Test Title -->
+            <div class="mb-3">
+              <label for="test_title" class="form-label small fw-bold text-navy-dark">3. Test Title</label>
+              <input type="text" id="test_title" name="title" class="custom-input py-2"
+                placeholder="e.g. Mid-Term Written Test (Units 1-3)" required>
+            </div>
+
+            <!-- Field 4: Test Description -->
+            <div class="mb-3">
+              <label for="test_description" class="form-label small fw-bold text-navy-dark">4. Test Description</label>
+              <textarea id="test_description" name="description" class="custom-input py-2" rows="3"
+                placeholder="Topics covered, syllabus details, room or exam instructions..." required></textarea>
+            </div>
+
+            <div class="row g-3 mb-4">
+              <!-- Field 5: Maximum Marks -->
+              <div class="col-md-6">
+                <label for="test_max_marks" class="form-label small fw-bold text-navy-dark">5. Maximum Marks</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-award-fill input-icon-left"></i>
+                  <input type="number" id="test_max_marks" name="max_marks" class="custom-input py-2" placeholder="50"
+                    min="1" required>
+                </div>
+              </div>
+
+              <!-- Field 6: Test Date -->
+              <div class="col-md-6">
+                <label for="test_date" class="form-label small fw-bold text-navy-dark">6. Test Date</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-calendar-check-fill input-icon-left"></i>
+                  <input type="date" id="test_date" name="test_date" class="custom-input py-2" required>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-primary-purple py-2 px-4" {% if not selected_class or not selected_subject
+              %}disabled{% endif %}>
+              <i class="bi bi-plus-circle me-1"></i> Create Test
+            </button>
+          </form>
+        </div>
+
+        <!-- RIGHT: TEST OVERVIEW & INSTRUCTIONS -->
+        <div class="dash-box-card justify-content-between">
+          <div>
+            <div class="dash-box-header">
+              <div class="dash-box-header-icon">
+                <i class="bi bi-info-circle-fill"></i>
+              </div>
+              <div>
+                <h3 class="dash-box-title">Written Test Instructions</h3>
+                <p class="dash-box-subtitle">Evaluation Workflow</p>
+              </div>
+            </div>
+
+            <ul class="list-unstyled mb-4">
+              <li class="d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-check-circle-fill text-success fs-5 mt-1"></i>
+                <span class="text-navy-dark">Create written in-person or classroom tests linked to your existing classes
+                  and subjects.</span>
+              </li>
+              <li class="d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-check-circle-fill text-success fs-5 mt-1"></i>
+                <span class="text-navy-dark">After checking student answer sheets offline, record each student's marks
+                  directly in the Marks Table.</span>
+              </li>
+              <li class="d-flex align-items-start gap-2 mb-3">
+                <i class="bi bi-check-circle-fill text-success fs-5 mt-1"></i>
+                <span class="text-navy-dark">Marks are validated to prevent negative scores or exceeding maximum marks,
+                  and persist across refreshes.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="text-center py-2">
+            <svg width="120" height="120" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="25" y="15" width="85" height="105" rx="14" fill="#ffffff" stroke="#ded7f3" stroke-width="3" />
+              <path d="M40 35H95" stroke="#4d3896" stroke-width="4" stroke-linecap="round" />
+              <path d="M40 55H80" stroke="#ded7f3" stroke-width="3" stroke-linecap="round" />
+              <path d="M40 75H90" stroke="#ded7f3" stroke-width="3" stroke-linecap="round" />
+              <circle cx="85" cy="95" r="14" fill="#10b981" />
+              <path d="M79 95L83 99L91 91" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MY WRITTEN TESTS TABLE -->
+      <div class="dash-box-card mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="dash-box-header-icon" style="width: 36px; height: 36px; font-size: 1.15rem;">
+              <i class="bi bi-card-checklist"></i>
+            </div>
+            <h2 class="dash-box-title fs-5 mb-0">My Written Tests</h2>
+          </div>
+
+          <div>
+            <span class="badge-faculty">Total Tests: {{ tests|length }}</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          {% if tests %}
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>S. No.</th>
+                <th>Test Title</th>
+                <th>Subject</th>
+                <th>Test Date</th>
+                <th>Maximum Marks</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in tests %}
+              <tr id="test-row-{{ t['id'] }}" {% if selected_test and selected_test['id']==t['id']
+                %}style="background-color: #f5f2fe;" {% endif %}>
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong class="text-navy-dark">{{ t['title'] }}</strong>
+                  <span class="small text-muted d-block">{{ t['description']|truncate(50) }}</span>
+                </td>
+                <td>
+                  <strong>{{ t['subject_name'] }}</strong>
+                  <span class="small text-muted d-block">{{ t['class_name'] }}</span>
+                </td>
+                <td>{{ t['test_date'] }}</td>
+                <td>
+                  <span class="badge bg-light text-dark border fw-bold px-2 py-1">
+                    {{ t['max_marks'] }} pts
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <!-- View Marks Option -->
+                    <a href="{{ url_for('teacher_tests', class_id=t['class_id'], subject_id=t['subject_id'], test_id=t['id']) }}#studentMarksSection"
+                      id="btn-view-marks-{{ t['id'] }}"
+                      class="btn btn-sm {% if selected_test and selected_test['id'] == t['id'] %}btn-primary-purple{% else %}btn-outline-primary{% endif %} py-1 px-3 view-marks-link"
+                      onclick="onViewMarksClick(event, '{{ t['id'] }}', '{{ url_for('teacher_tests', class_id=t['class_id'], subject_id=t['subject_id'], test_id=t['id']) }}#studentMarksSection')">
+                      <i class="bi bi-pencil-fill me-1"></i> View Marks
+                    </a>
+
+                    <!-- Delete Test Option with Confirmation Dialog -->
+                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" data-bs-toggle="modal"
+                      data-bs-target="#deleteTestModal{{ t['id'] }}" title="Delete Test" aria-label="Delete Test">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+
+                  <!-- Delete Confirmation Modal -->
+                  <div class="modal fade" id="deleteTestModal{{ t['id'] }}" tabindex="-1"
+                    aria-labelledby="deleteTestLabel{{ t['id'] }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                      <div class="modal-content" style="border-radius: 18px; border: 1px solid var(--card-border);">
+                        <div class="modal-header border-0 pb-0">
+                          <h5 class="modal-title fw-bold text-danger" id="deleteTestLabel{{ t['id'] }}">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete Written Test
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body py-3">
+                          <p class="mb-1 text-navy-dark fw-semibold">
+                            Are you sure you want to delete this written test? This action cannot be undone.
+                          </p>
+                          <p class="small text-muted mb-0">
+                            Test: <strong>{{ t['title'] }}</strong> ({{ t['subject_name'] }} &bull; {{ t['class_name']
+                            }})
+                          </p>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                          <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">Cancel</button>
+                          <form method="POST" action="{{ url_for('delete_test_route') }}" style="display: inline;">
+                            <input type="hidden" name="test_id" value="{{ t['id'] }}">
+                            <button type="submit" class="btn btn-danger px-3 fw-bold">
+                              Delete Test
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-file-earmark-x fs-3 d-block mb-2"></i>
+            No written tests created yet for {{ selected_subject['name'] if selected_subject else 'this subject' }}. Use
+            the form above to schedule your first written test.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- STUDENT MARKS TABLE (When a Test is Selected) -->
+      {% if selected_test %}
+      <div class="dash-box-card" id="studentMarksSection">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2 border-bottom">
+          <div>
+            <h2 class="dash-box-title fs-5">
+              <i class="bi bi-award text-primary me-2"></i>
+              Student Marks: <span class="text-primary">{{ selected_test['title'] }}</span>
+            </h2>
+            <p class="dash-box-subtitle">
+              Class: <strong>{{ selected_test['class_name'] }}</strong> &bull;
+              Subject: <strong>{{ selected_test['subject_name'] }}</strong> &bull;
+              Max Marks: <strong>{{ selected_test['max_marks'] }}</strong> &bull;
+              Date: <strong>{{ selected_test['test_date'] }}</strong>
+            </p>
+          </div>
+
+          <div>
+            <button type="button" class="btn-secondary-purple py-1 px-3" data-bs-toggle="modal"
+              data-bs-target="#enrollStudentTestModal">
+              <i class="bi bi-person-plus-fill me-1"></i> Enroll Student
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          {% if student_marks %}
+          <table class="dash-table">
+            <thead>
+              <tr>
+                <th>S. No.</th>
+                <th>Student Name</th>
+                <th>Marks Obtained</th>
+                <th>Maximum Marks</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sm in student_marks %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>
+                  <strong>{{ sm['student_name'] }}</strong>
+                  <span class="small text-muted d-block">{{ sm['student_email'] }}</span>
+                </td>
+
+                <!-- Marks Entry Form -->
+                <form method="POST" action="{{ url_for('save_test_marks_route') }}" class="d-contents">
+                  <input type="hidden" name="test_id" value="{{ selected_test['id'] }}">
+                  <input type="hidden" name="student_id" value="{{ sm['student_id'] }}">
+
+                  <td>
+                    <div class="d-inline-flex align-items-center gap-2">
+                      <input type="number" name="marks_obtained"
+                        value="{{ sm['marks_obtained'] if sm['marks_obtained'] is not none else '' }}" min="0"
+                        max="{{ selected_test['max_marks'] }}" step="any" class="marks-input"
+                        placeholder="0 - {{ selected_test['max_marks'] }}" required>
+                      {% if sm['marks_obtained'] is not none %}
+                      <span class="badge-status-green py-1 px-2" style="font-size: 0.75rem;">
+                        <i class="bi bi-check-circle-fill"></i> Saved
+                      </span>
+                      {% endif %}
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="fw-bold text-navy-dark">{{ selected_test['max_marks'] }}</span>
+                  </td>
+
+                  <td>
+                    <button type="submit" class="btn-save-marks py-1 px-3" title="Save Marks">
+                      <i class="bi bi-check2"></i> Save Marks
+                    </button>
+                  </td>
+                </form>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <!-- Empty state when no students are enrolled in the class -->
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-person-x fs-1 d-block mb-2 text-primary opacity-50"></i>
+            <h4 class="h6 fw-bold text-dark">No Students Enrolled in {{ selected_test['class_name'] }}</h4>
+            <p class="small max-w-sm mx-auto mb-3" style="max-width: 360px;">
+              No student records were found for this class. Click below to enroll students and record their test marks.
+            </p>
+            <button type="button" class="btn-primary-purple py-2 px-4" data-bs-toggle="modal"
+              data-bs-target="#enrollStudentTestModal" style="width: auto;">
+              <i class="bi bi-person-plus-fill me-1"></i> Enroll Student in {{ selected_test['class_name'] }}
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: ENROLL STUDENT -->
+<div class="modal fade" id="enrollStudentTestModal" tabindex="-1" aria-labelledby="enrollStudentTestModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="enrollStudentTestModalLabel">
+          <i class="bi bi-person-plus-fill text-primary me-2"></i>Enroll Student in Class
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_student') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="enroll_test_class" class="form-label small fw-bold text-navy-dark">Class</label>
+            <select id="enroll_test_class" name="class_id" class="dash-select-custom py-2" required>
+              {% for c in classes %}
+              <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{% endif
+                %}>
+                {{ c['name'] }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="student_name_input" class="form-label small fw-bold text-navy-dark">Student Full Name</label>
+            <input type="text" id="student_name_input" name="full_name" class="custom-input py-2"
+              placeholder="e.g. Eleanor Vance" required>
+          </div>
+          <div class="mb-3">
+            <label for="student_email_val" class="form-label small fw-bold text-navy-dark">Student Email</label>
+            <input type="email" id="student_email_val" name="email" class="custom-input py-2"
+              placeholder="e.g. eleanor@student.edu" required>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Enroll Student
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function onTestClassChange(classId) {
+    if (!classId) return;
+    window.location.href = "{{ url_for('teacher_tests') }}?class_id=" + encodeURIComponent(classId);
+  }
+
+  function onTestSubjectChange(subjectId) {
+    if (!subjectId) return;
+    const classId = "{{ selected_class['id'] if selected_class else '' }}";
+    let url = "{{ url_for('teacher_tests') }}?subject_id=" + encodeURIComponent(subjectId);
+    if (classId) {
+      url += "&class_id=" + encodeURIComponent(classId);
+    }
+    window.location.href = url;
+  }
+
+  function highlightSection(element) {
+    if (!element) return;
+    element.classList.remove('section-highlight-pulse');
+    // Trigger DOM reflow to restart CSS keyframe animation
+    void element.offsetWidth;
+    element.classList.add('section-highlight-pulse');
+  }
+
+  // Track the ID of the currently displayed test marks
+  let currentSelectedTestId = '{{ selected_test['id'] if selected_test else '' }}';
+
+  async function onViewMarksClick(event, testId, targetUrl) {
+    if (event) {
+      // Prevent browser from instantly jumping to the top of page
+      event.preventDefault();
+    }
+
+    const marksSec = document.getElementById('studentMarksSection');
+
+    // Case 1: If clicked test is ALREADY selected and marks section is visible
+    if (String(currentSelectedTestId) === String(testId) && marksSec) {
+      marksSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      highlightSection(marksSec);
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', targetUrl);
+      }
+      return;
+    }
+
+    // Case 2: Different test clicked - update dynamically without jumping to top of page
+    if (marksSec) {
+      try {
+        const response = await fetch(targetUrl);
+        if (response.ok) {
+          const htmlText = await response.text();
+          const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+          const newMarksSection = doc.getElementById('stud entMarksSection');
+
+          if (newMarksSection) {
+            // Replace existing marks section with fresh content
+            marksSec.replaceWith(newMarksSection);
+            currentSelectedTestId = String(testId);
+
+            // Update row background highlight in tests table
+            document.querySelectorAll('tr[id^="test-row-"]').forEach(function (row) {
+               row.style.backgroundColor = '';
+            });
+            const activeRow = document.getElementById('test-row-' + testId);
+            if (activeRow) {
+              activeRow.style.backgroundColor = '#f5f2fe';
+            }
+
+            // Update View Marks buttons styling
+            document.querySelectorAll('.view-marks-link').forEach(function (btn) {
+              btn.classList.remove('btn-primary-purple');
+              btn.classList.add('btn-outline-primary');
+            });
+            const activeBtn = document.getElementById('btn-view-marks-' + testId);
+            if (activeBtn) {
+              activeBtn.classList.remove('btn-outline-primary');
+              activeBtn.classList.add('btn-primary-purple');
+            }
+
+            // Update URL in address bar without reload
+            if (window.history && window.history.pushState) {
+              window.history.pushState(null, '', targetUrl);
+            }
+
+            // Re-apply any active search filter to the new section
+            if (window.filterAllTables) {
+              const currentSearch = document.querySelector('.dash-search-input');
+              if (currentSearch && currentSearch.value) {
+                window.filterAllTables(currentSearch.value);
+              }
+            }
+
+            // Smoothly scroll d own to the newly updated Student Marks section & highlight it
+            const targetSec = document.getElementById('studentMarksSection');
+            if (targetSec) {
+              targetSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              highlightSection(targetSec);
+            }
+            return;
+          }
+        }
+      } catch  (err) {
+        console.warn('Dynamic section update failed, performing standard navigation:', err);
+      }
+    }
+
+    // Fallback: standard browser navigaw.location.href = targetUrl;
+  }
+
+  // Smooth scroll to student marks on direct page load if hash or test_id present
+  document.addEventListener('DOMContentLoaded', function () {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasTestIdParam = urlParams.has('test_id');
+    const hasMarksHash = window.location.hash === '#studentMarksSection';
+
+    if (hasMarksHash || hasTestIdParam) {
+      const marksSec = document.getElementById('studentMarksSection');
+      if (marksSec) {
+        setTimeout(function () {
+          marksSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          highlightSection(marksSec);
+        }, 120);
+      }
+    }
+  });
+</script>
+{% endblock %}

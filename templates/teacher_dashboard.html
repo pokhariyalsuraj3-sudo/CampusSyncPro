@@ -1,0 +1,1009 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR (Matching Reference Image) -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item active" id="nav-item-generate-code">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <!-- Decorative Books Illustration from Mockup -->
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <!-- Little leafy sprig -->
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR -->
+    <header class="dash-topbar">
+      <div class="dash-search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" class="dash-search-input" placeholder="Search classes, subjects, codes..."
+          aria-label="Search">
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar">
+          {{ teacher['full_name'][0] | upper }}
+        </div>
+        <div class="dash-user-meta">
+          <p class="dash-user-name">{{ teacher['full_name'] }}</p>
+          <p class="dash-user-role">{{ teacher['email'] }}</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content">
+
+      <!-- Flash Messages Container -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show mb-4" role="alert">
+        <div>
+          {% if category == 'danger' %}
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          {% elif category == 'success' %}
+          <i class="bi bi-check-circle-fill me-2"></i>
+          {% elif category == 'warning' %}
+          <i class="bi bi-exclamation-circle-fill me-2"></i>
+          {% else %}
+          <i class="bi bi-info-circle-fill me-2"></i>
+          {% endif %}
+          {{ message }}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
+      <!-- 5-Second Undo Notification Banner -->
+      <div id="undoNotificationBanner" class="alert alert-custom mb-4"
+        style="background: #f3effc; border: 1.5px solid #a78bfa; color: #432874; {% if not undo_info %}display: none;{% endif %}"
+        data-pending-id="{{ undo_info.pending_id if undo_info else '' }}" role="alert">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+          <i class="bi bi-clock-history fs-5 text-purple-dark"></i>
+          <span id="undoBannerText" class="fw-medium">
+            {% if undo_info %}
+            {{ undo_info.label }} deleted.
+            {% else %}
+            Item deleted.
+            {% endif %}
+          </span>
+          <span class="badge bg-warning text-dark ms-2 px-2 py-1" id="undoTimerBadge"
+            style="font-weight: 600; font-size: 0.82rem;">
+            <span id="undoCountdownText">Undo available for <span id="undoCountdownSeconds">{% if undo_info %}{{
+                undo_info.remaining_seconds|round|int }}{% else %}5{% endif %}</span> seconds</span>
+          </span>
+        </div>
+        <div class="d-flex align-items-center gap-2 mt-2 mt-sm-0">
+          <button type="button" class="btn btn-sm btn-primary-purple px-3 py-1 fw-bold" id="btnUndoAction"
+            onclick="executeUndo()">
+            <i class="bi bi-arrow-counterclockwise"></i> Undo
+          </button>
+          <button type="button" class="btn-close ms-2" onclick="dismissUndoBanner(true)" aria-label="Close"></button>
+        </div>
+      </div>
+
+      <!-- HERO BANNER (From Reference Image) -->
+      <section class="dash-hero-card" aria-label="Overview Banner">
+        <div class="dash-breadcrumb">
+          <i class="bi bi-house-door-fill"></i> Dashboard &gt; Generate Code
+        </div>
+        <h1 class="dash-hero-title">Generate Student Code</h1>
+        <p class="dash-hero-subtitle">
+          Create a unique login code for new students to access Campus Sync.
+        </p>
+
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            One Code &bull; Many Opportunities<br>for New Beginnings &hearts;
+          </div>
+        </div>
+      </section>
+
+
+      <!-- TWO-COLUMN CORE INTERACTION GRID -->
+      <div class="dash-grid-top">
+
+        <!-- LEFT CARD: CLASS & SUBJECT SELECTION & CODE GENERATE -->
+        <div class="dash-box-card">
+          <div class="dash-box-header">
+            <div class="dash-box-header-icon">
+              <i class="bi bi-qr-code-scan"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Generate New Code</h2>
+              <p class="dash-box-subtitle">Select Class and Subject to automatically generate a student code.</p>
+            </div>
+          </div>
+
+          <!-- FEATURE 1: CLASS SELECTION & ADD CLASS -->
+          <div class="dash-field-group">
+            <div class="dash-field-label-row">
+              <label for="class_select" class="dash-field-label">1. Class</label>
+              <div class="d-flex gap-2">
+                {% if selected_class %}
+                <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="btn_delete_class"
+                  onclick="confirmDeleteClass({{ selected_class['id'] }}, '{{ selected_class['name']|escape }}')"
+                  title="Delete or Archive selected class">
+                  <i class="bi bi-trash"></i> Delete Class
+                </button>
+                {% endif %}
+                <button type="button" class="btn-secondary-purple py-1 px-2" data-bs-toggle="modal"
+                  data-bs-target="#addClassModal">
+                  <i class="bi bi-plus-circle"></i> Add Class
+                </button>
+              </div>
+            </div>
+
+            {% if classes %}
+            <select id="class_select" class="dash-select-custom" onchange="onClassChange(this.value)">
+              {% for c in classes %}
+              <option value="{{ c['id'] }}" {% if selected_class and selected_class['id']==c['id'] %}selected{% endif
+                %}>
+                {{ c['name'] }}
+              </option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <div class="alert alert-warning-custom py-2 px-3 mb-0">
+              <i class="bi bi-info-circle me-1"></i> No classes yet. Click <strong>Add Class</strong> to begin.
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- FEATURE 2: SUBJECT SELECTION & ADD SUBJECT -->
+          <div class="dash-field-group">
+            <div class="dash-field-label-row">
+              <label for="subject_select" class="dash-field-label">2. Subject</label>
+              {% if selected_class %}
+              <div class="d-flex gap-2">
+                {% if selected_subject %}
+                <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" id="btn_delete_subject"
+                  onclick="confirmDeleteSubject({{ selected_subject['id'] }}, '{{ selected_subject['name']|escape }}')"
+                  title="Delete or Archive selected subject">
+                  <i class="bi bi-trash"></i> Delete Subject
+                </button>
+                {% endif %}
+                <button type="button" class="btn-secondary-purple py-1 px-2" data-bs-toggle="modal"
+                  data-bs-target="#addSubjectModal">
+                  <i class="bi bi-plus-circle"></i> Add Subject
+                </button>
+              </div>
+              {% endif %}
+            </div>
+
+            {% if not selected_class %}
+            <select id="subject_select" class="dash-select-custom" disabled>
+              <option>First create or select a Class</option>
+            </select>
+            {% elif subjects %}
+            <select id="subject_select" class="dash-select-custom" onchange="onSubjectChange(this.value)">
+              {% for s in subjects %}
+              <option value="{{ s['id'] }}" {% if selected_subject and selected_subject['id']==s['id'] %}selected{%
+                endif %}>
+                {{ s['name'] }}
+              </option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <div class="alert alert-info-custom py-2 px-3 mb-0">
+              <i class="bi bi-info-circle me-1"></i> No subjects for this class yet. Click <strong>Add Subject</strong>.
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- FEATURE 3: GENERATE CODE AUTOMATICALLY -->
+          <form method="POST" action="{{ url_for('generate_code') }}" class="mt-auto pt-3">
+            <input type="hidden" name="class_id" id="hidden_class_id"
+              value="{{ selected_class['id'] if selected_class else '' }}">
+            <input type="hidden" name="subject_id" id="hidden_subject_id"
+              value="{{ selected_subject['id'] if selected_subject else '' }}">
+
+            <button type="submit" id="btn_generate_code" class="btn-primary-purple py-3" {% if not selected_class or not
+              selected_subject %}disabled style="opacity: 0.6; cursor: not-allowed;" {% endif %}>
+              <i class="bi bi-arrow-repeat"></i> Generate Code Automatically
+            </button>
+          </form>
+
+        </div>
+
+        <!-- RIGHT CARD: CODE GENERATED DISPLAY (Matching Reference Image) -->
+        <div class="dash-box-card">
+          {% if newly_generated_code or active_code_info %}
+          {% set display_code = newly_generated_code or active_code_info['code'] %}
+          {% set display_class = selected_class['name'] if selected_class else (active_code_info['class_name'] if
+          active_code_info else '') %}
+          {% set display_subject = selected_subject['name'] if selected_subject else (active_code_info['subject_name']
+          if active_code_info else '') %}
+
+          <div class="code-display-container">
+            <div class="code-success-badge">
+              <i class="bi bi-check-lg"></i>
+            </div>
+
+            <h3 class="dash-box-title mb-1">Code Generated Successfully!</h3>
+            <p class="dash-box-subtitle mb-3">Share this code with new students.</p>
+
+            <!-- Big Code Box with Copy Button -->
+            <div class="code-hero-box">
+              <span class="code-hero-text" id="active_code_text">{{ display_code }}</span>
+              <button type="button" class="btn-copy-code" onclick="copyCodeToClipboard('{{ display_code }}')"
+                title="Copy Code to Clipboard" aria-label="Copy Code">
+                <i class="bi bi-clipboard" id="copy_icon"></i>
+              </button>
+            </div>
+
+            <!-- Associated Meta Chips -->
+            <div class="code-meta-chips">
+              <span class="code-chip">
+                <i class="bi bi-mortarboard-fill"></i> Class: <strong>{{ display_class }}</strong>
+              </span>
+              <span class="code-chip">
+                <i class="bi bi-book-half"></i> Subject: <strong>{{ display_subject }}</strong>
+              </span>
+              {% if active_code_info and active_code_info['created_at'] %}
+              <span class="code-chip">
+                <i class="bi bi-clock-history"></i> {{ active_code_info['created_at'] }}
+              </span>
+              {% endif %}
+            </div>
+
+            <!-- Share Action -->
+            <button type="button" class="btn-primary-purple"
+              onclick="shareCode('{{ display_code }}', '{{ display_class }}', '{{ display_subject }}')">
+              <i class="bi bi-share-fill"></i> Share Code
+            </button>
+          </div>
+          {% else %}
+          <!-- Empty State Prompt -->
+          <div class="code-display-container text-center py-5">
+            <div class="dash-box-header-icon mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem;">
+              <i class="bi bi-key-fill"></i>
+            </div>
+            <h3 class="dash-box-title mb-2">Ready to Generate</h3>
+            <p class="text-muted max-w-sm mb-4" style="max-width: 320px;">
+              Select a <strong>Class</strong> and <strong>Subject</strong> on the left, then click <strong>"Generate
+                Code Automatically"</strong> to generate a unique access code.
+            </p>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <!-- STUDENT MANAGEMENT / ROLL NUMBER ASSIGNMENT SECTION -->
+      <section class="dash-box-card mt-4" id="student-management-section">
+        <div class="dash-box-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3">
+            <div class="dash-box-header-icon">
+              <i class="bi bi-person-badge-fill"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Student Management &amp; Roll Numbers</h2>
+              <p class="dash-box-subtitle">
+                {% if selected_class %}
+                Students enrolled in <strong>{{ selected_class['name'] }}</strong>
+                {% else %}
+                Select a class above to manage student roll numbers
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          {% if selected_class %}
+          <div class="d-flex align-items-center gap-2">
+            <span
+              class="badge bg-purple-subtle text-purple border border-purple-subtle px-3 py-2 rounded-pill font-monospace"
+              style="font-size: 0.8rem;">
+              <i class="bi bi-people-fill me-1"></i> {{ students|length }} Student{{ 's' if students|length != 1 else ''
+              }}
+            </span>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if not selected_class %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-mortarboard fs-2 d-block mb-2 opacity-50"></i>
+          Please create or select a class above to view enrolled students.
+        </div>
+        {% elif students %}
+        <div class="table-responsive mt-3">
+          <table class="dash-table align-middle" id="teacher-students-table">
+            <thead>
+              <tr>
+                <th style="width: 45px; text-align: center;">#</th>
+                <th>Student Name</th>
+                <th>Email Address</th>
+                <th style="width: 140px;">Current Roll No</th>
+                <th style="width: 130px; text-align: center;">Status</th>
+                <th style="width: 230px;">Assign / Update Roll Number</th>
+                <th style="width: 100px; text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in students %}
+              <tr id="student-row-{{ s['id'] }}">
+                <td class="text-muted fw-semibold text-center" style="font-size: 0.8rem;">{{ loop.index }}</td>
+                <td>
+                  <div class="fw-bold text-navy">{{ s['full_name'] }}</div>
+                </td>
+                <td>
+                  <div class="text-secondary small font-monospace">{{ s['email'] }}</div>
+                </td>
+                <td>
+                  {% if s['roll_number'] %}
+                  <span class="badge bg-light text-navy border fw-medium font-monospace py-1 px-2"
+                    style="font-size: 0.8rem;" id="table-roll-badge-{{ s['id'] }}">
+                    {{ s['roll_number'] }}
+                  </span>
+                  {% else %}
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle py-1 px-2"
+                    style="font-size: 0.75rem;" id="table-roll-badge-{{ s['id'] }}">
+                    Not Assigned Yet
+                  </span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if s['roll_number'] %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-1 px-2"
+                    style="font-size: 0.75rem;">
+                    <i class="bi bi-check-circle-fill me-1"></i> Assigned
+                  </span>
+                  {% else %}
+                  <span
+                    class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill py-1 px-2"
+                    style="font-size: 0.75rem;">
+                    <i class="bi bi-clock-history me-1"></i> Pending
+                  </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <form method="POST" action="{{ url_for('assign_student_roll') }}"
+                    class="d-flex gap-2 align-items-center">
+                    <input type="hidden" name="student_id" value="{{ s['id'] }}">
+                    <input type="hidden" name="redirect_to"
+                      value="{{ url_for('teacher_dashboard', class_id=selected_class['id']) }}">
+                    <div class="input-group input-group-sm" style="max-width: 130px;">
+                      <input type="text" name="roll_number" class="form-control font-monospace" placeholder="e.g. 101"
+                        value="{{ s['roll_number'] or '' }}" required autocomplete="off">
+                    </div>
+                    <button type="submit"
+                      class="btn btn-sm {% if s['roll_number'] %}btn-outline-primary{% else %}btn-primary-purple{% endif %} py-1 px-3 text-nowrap rounded-pill"
+                      style="font-size: 0.78rem;">
+                      {% if s['roll_number'] %}
+                      <i class="bi bi-pencil-square me-1"></i> Update
+                      {% else %}
+                      <i class="bi bi-check-lg me-1"></i> Assign
+                      {% endif %}
+                    </button>
+                  </form>
+                </td>
+                <td class="text-center">
+                  <form method="POST" action="{{ url_for('remove_student_class_route') }}"
+                    data-student-name="{{ s['full_name'] }}" data-class-name="{{ selected_class['name'] }}"
+                    onsubmit="return confirm('Are you sure you want to remove ' + this.dataset.studentName + ' from ' + this.dataset.className + '?\n\nNote: Historical attendance, submissions, and marks will be preserved, but the student will no longer appear in active class rosters.');"
+                    class="d-inline">
+                    <input type="hidden" name="student_id" value="{{ s['id'] }}">
+                    <input type="hidden" name="class_id" value="{{ selected_class['id'] }}">
+                    <input type="hidden" name="redirect_to"
+                      value="{{ url_for('teacher_dashboard', class_id=selected_class['id'], _anchor='student-management-section') }}">
+                    <button type="submit"
+                      class="btn btn-sm btn-outline-danger py-1 px-2 rounded-pill d-inline-flex align-items-center gap-1"
+                      style="font-size: 0.75rem;" title="Remove {{ s['full_name'] }} from {{ selected_class['name'] }}">
+                      <i class="bi bi-person-x"></i> Remove
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-people fs-2 d-block mb-2 opacity-50"></i>
+          <div>No students have joined <strong>{{ selected_class['name'] }}</strong> yet.</div>
+          <p class="small text-muted mt-1">
+            Share the Class Code (e.g.
+            <code>{{ active_code_info['code'] if active_code_info else 'generated above' }}</code>) with your students.
+            Once they join, they will appear here for Roll Number assignment.
+          </p>
+        </div>
+        {% endif %}
+      </section>
+
+      <!-- BOTTOM SECTION: GENERATED CODES HISTORY & INSTRUCTIONS -->
+      <div class="dash-grid-bottom">
+
+        <!-- HISTORY TABLE -->
+        <div class="dash-box-card">
+          <div class="dash-box-header">
+            <div class="dash-box-header-icon">
+              <i class="bi bi-clock-history"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Generated Codes History</h2>
+              <p class="dash-box-subtitle">Permanent records stored in SQLite database.</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            {% if history %}
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Class</th>
+                  <th>Subject</th>
+                  <th>Generated On</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for h in history %}
+                <tr id="code-row-{{ h['id'] }}">
+                  <td>
+                    <strong class="text-navy-dark font-monospace fs-6">{{ h['code'] }}</strong>
+                  </td>
+                  <td>{{ h['class_name'] }}</td>
+                  <td>{{ h['subject_name'] }}</td>
+                  <td class="text-muted small">{{ h['created_at'] }}</td>
+                  <td>
+                    <span class="status-badge-active">
+                      <i class="bi bi-circle-fill" style="font-size: 0.45rem;"></i> Active
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-inline-flex gap-1">
+                      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                        onclick="copyCodeToClipboard('{{ h['code'] }}')" title="Copy code">
+                        <i class="bi bi-clipboard"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete-code"
+                        onclick="confirmDeleteCode({{ h['id'] }}, '{{ h['code'] }}')" title="Delete code">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            {% else %}
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-journal-x fs-3 d-block mb-2"></i>
+              No codes generated yet. Select a Class and Subject to generate your first code.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- IMPORTANT INSTRUCTIONS (Matching Reference Image) -->
+        <div class="dash-box-card">
+          <div class="dash-box-header">
+            <div class="dash-box-header-icon">
+              <i class="bi bi-info-circle-fill"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Important Instructions</h2>
+              <p class="dash-box-subtitle">How automatic code generation works</p>
+            </div>
+          </div>
+
+          <div class="instruction-step">
+            <div class="instruction-step-icon">
+              <i class="bi bi-layers-fill"></i>
+            </div>
+            <div>
+              <div class="instruction-step-title">1. Select Class &amp; Subject</div>
+              <p class="instruction-step-desc">Pick the relevant Class and Subject. Each code is strictly mapped to this
+                pair.</p>
+            </div>
+          </div>
+
+          <div class="instruction-step">
+            <div class="instruction-step-icon">
+              <i class="bi bi-cpu-fill"></i>
+            </div>
+            <div>
+              <div class="instruction-step-title">2. Automatic Generation</div>
+              <p class="instruction-step-desc">The backend generates a collision-free, randomized unique key saved in
+                SQLite.</p>
+            </div>
+          </div>
+
+          <div class="instruction-step">
+            <div class="instruction-step-icon">
+              <i class="bi bi-share-fill"></i>
+            </div>
+            <div>
+              <div class="instruction-step-title">3. Share with Students</div>
+              <p class="instruction-step-desc">Provide this code to your students for their verified registration and
+                access.</p>
+            </div>
+          </div>
+
+          <div class="instruction-step">
+            <div class="instruction-step-icon">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <div>
+              <div class="instruction-step-title">4. Secure &amp; Persistent</div>
+              <p class="instruction-step-desc">Codes remain safely recorded and associated with your teacher account
+                permanently.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: ADD CLASS -->
+<div class="modal fade" id="addClassModal" tabindex="-1" aria-labelledby="addClassModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="addClassModalLabel">
+          <i class="bi bi-mortarboard-fill text-primary me-2"></i>Select or Add Academic Class
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_class') }}">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Select an existing academic cohort (e.g. <em>IT 3rd Year</em>) to offer your subject for that class, or
+            create a new class.
+          </p>
+          {% if all_classes %}
+          <div class="form-group-custom mb-3">
+            <label for="existing_class_select" class="fw-semibold mb-1 small text-dark">Select Existing Academic
+              Cohort</label>
+            <div class="input-with-icon">
+              <i class="bi bi-collection input-icon-left"></i>
+              <select id="existing_class_select" name="existing_class_id" class="form-select custom-input"
+                onchange="const inp = document.getElementById('class_name_input'); if (inp) { if (this.value) { inp.removeAttribute('required'); } else { inp.setAttribute('required', 'required'); } }">
+                <option value="">-- Or enter a new class name below --</option>
+                {% for ac in all_classes %}
+                <option value="{{ ac['id'] }}">{{ ac['name'] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-text small text-muted">Multiple teachers can teach different subjects in the same academic
+              class.</div>
+          </div>
+          {% endif %}
+          <div class="form-group-custom">
+            <label for="class_name_input" class="fw-semibold mb-1 small text-dark">Class Name (if creating new)</label>
+            <div class="input-with-icon">
+              <i class="bi bi-mortarboard input-icon-left"></i>
+              <input type="text" id="class_name_input" name="class_name" class="custom-input"
+                placeholder="e.g. First Year IT" {% if not all_classes %}required{% endif %} autofocus>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Confirm Class
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD SUBJECT -->
+<div class="modal fade" id="addSubjectModal" tabindex="-1" aria-labelledby="addSubjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 20px; border: 1px solid var(--card-border); padding: 1rem;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="addSubjectModalLabel">
+          <i class="bi bi-book-half text-primary me-2"></i>Add New Subject
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('add_subject') }}">
+        <input type="hidden" name="class_id" value="{{ selected_class['id'] if selected_class else '' }}">
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Adding subject for <strong>{{ selected_class['name'] if selected_class else 'Selected Class' }}</strong>
+            (e.g. <em>Java</em>, <em>Python</em>, <em>Data Structures</em>).
+          </p>
+          <div class="form-group-custom">
+            <label for="subject_name_input" class="fw-semibold mb-1 small text-dark">Subject Name</label>
+            <div class="input-with-icon">
+              <i class="bi bi-journal-code input-icon-left"></i>
+              <input type="text" id="subject_name_input" name="subject_name" class="custom-input"
+                placeholder="e.g. Data Structures" required autofocus>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+            Save Subject
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  let undoCountdownTimer = null;
+  let currentPendingId = {{ undo_info.pending_id if undo_info else 'null' }};
+  let currentExpiresAtMs = {{ undo_info.expires_at_ms if (undo_info and undo_info.expires_at_ms) else 'null' }};
+  let pendingDeleteType = {{ ("'" + undo_info.type + "'") if undo_info else 'null' }};
+
+  function updateCountdownDisplay(sec) {
+    const textSpan = document.getElementById('undoCountdownText');
+    const safeSec = Math.max(1, Math.min(5, Math.round(sec)));
+    if (textSpan) {
+      const secWord = safeSec === 1 ? 'second' : 'seconds';
+      textSpan.innerHTML = `Undo available for <span id="undoCountdownSeconds">${safeSec}</span> ${secWord}`;
+    }
+  }
+
+  function startUndoCountdown(expiresAtMs, pendingId, message, itemType) {
+    // Prevent multiple simultaneous Undo timers
+    if (undoCountdownTimer) {
+      clearInterval(undoCountdownTimer);
+      undoCountdownTimer = null;
+    }
+
+    currentPendingId = pendingId;
+    currentExpiresAtMs = expiresAtMs;
+    if (itemType) pendingDeleteType = itemType;
+
+    const banner = document.getElementById('undoNotificationBanner');
+    const bannerText = document.getElementById('undoBannerText');
+    if (!banner) return;
+
+    if (message && bannerText) {
+      bannerText.textContent = message;
+    }
+    banner.style.display = 'flex';
+    banner.dataset.pendingId = pendingId;
+
+    const remainingMs = Math.max(0, expiresAtMs - Date.now());
+    const initialSec = Math.ceil(remainingMs / 1000);
+    updateCountdownDisplay(initialSec);
+
+    if (remainingMs <= 0) {
+      dismissUndoBanner(true);
+      return;
+    }
+
+    undoCountdownTimer = setInterval(() => {
+      const timeLeftMs = currentExpiresAtMs - Date.now();
+      const timeLeftSec = Math.ceil(timeLeftMs / 1000);
+
+      if (timeLeftMs <= 0) {
+        clearInterval(undoCountdownTimer);
+        undoCountdownTimer = null;
+        updateCountdownDisplay(1);
+        dismissUndoBanner(true);
+      } else {
+        updateCountdownDisplay(timeLeftSec);
+      }
+    }, 100);
+  }
+
+  function dismissUndoBanner(callFinalize = false) {
+    if (undoCountdownTimer) {
+      clearInterval(undoCountdownTimer);
+      undoCountdownTimer = null;
+    }
+    const banner = document.getElementById('undoNotificationBanner');
+    if (banner) {
+      banner.style.display = 'none';
+    }
+    const pendingIdToFinalize = currentPendingId;
+    const typeToFinalize = pendingDeleteType;
+    currentPendingId = null;
+    currentExpiresAtMs = null;
+    pendingDeleteType = null;
+
+    if (callFinalize && pendingIdToFinalize) {
+      fetch("{{ url_for('finalize_delete_route') }}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ pending_id: pendingIdToFinalize })
+      }).then(() => {
+        if (typeToFinalize === 'class') {
+          window.location.href = "{{ url_for('teacher_dashboard') }}";
+        }
+      }).catch(() => { });
+    }
+  }
+
+  function executeUndo() {
+    const banner = document.getElementById('undoNotificationBanner');
+    const pendingId = currentPendingId || (banner ? banner.dataset.pendingId : null);
+    if (!pendingId) return;
+
+    if (undoCountdownTimer) {
+      clearInterval(undoCountdownTimer);
+      undoCountdownTimer = null;
+    }
+
+    fetch("{{ url_for('undo_delete_route') }}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify({ pending_id: pendingId })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (banner) banner.style.display = 'none';
+          currentPendingId = null;
+          currentExpiresAtMs = null;
+          pendingDeleteType = null;
+          window.location.reload();
+        } else {
+          alert(data.message || 'Undo expired or failed.');
+          dismissUndoBanner(false);
+        }
+      })
+      .catch(err => {
+        console.error('Undo error:', err);
+        window.location.reload();
+      });
+  }
+
+  function confirmDeleteCode(codeId, codeText) {
+    if (!confirm("Are you sure you want to delete this generated code?")) {
+      return;
+    }
+    fetch(`/teacher/code/delete/${codeId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const row = document.getElementById(`code-row-${codeId}`);
+          if (row) {
+            row.style.display = 'none';
+          }
+          startUndoCountdown(
+            data.expires_at_ms || (Date.now() + 5000),
+            data.pending_id,
+            data.message || `Generated code '${codeText}' deleted.`,
+            'code'
+          );
+        } else {
+          alert(data.message || "Failed to delete generated code.");
+        }
+      })
+      .catch(err => {
+        console.error("Delete code error:", err);
+        alert("An error occurred while deleting the generated code.");
+      });
+  }
+
+  function confirmDeleteClass(classId, className) {
+    if (!confirm(`Are you sure you want to delete class '${className}'? If it has linked records (students, subjects, attendance), it will be safely archived without data loss.`)) {
+      return;
+    }
+    fetch(`/teacher/class/delete/${classId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Do NOT redirect immediately!
+          // Show Undo notification immediately and start 5-second countdown
+          const classSelect = document.getElementById('class_select');
+          if (classSelect) {
+            const opt = classSelect.querySelector(`option[value="${classId}"]`);
+            if (opt) {
+              opt.disabled = true;
+            }
+          }
+          const delBtn = document.getElementById('btn_delete_class');
+          if (delBtn) delBtn.disabled = true;
+
+          startUndoCountdown(
+            data.expires_at_ms || (Date.now() + 5000),
+            data.pending_id,
+            data.message || `Class '${className}' deleted.`,
+            'class'
+          );
+        } else {
+          alert(data.message || "Failed to delete class.");
+        }
+      })
+      .catch(err => {
+        console.error("Delete class error:", err);
+        alert("An error occurred while deleting the class.");
+      });
+  }
+
+  function confirmDeleteSubject(subjectId, subjectName) {
+    if (!confirm(`Are you sure you want to delete subject '${subjectName}'? If it has linked records (assignments, tests, attendance), it will be safely archived without data loss.`)) {
+      return;
+    }
+    fetch(`/teacher/subject/delete/${subjectId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          startUndoCountdown(
+            data.expires_at_ms || (Date.now() + 5000),
+            data.pending_id,
+            data.message || `Subject '${subjectName}' deleted.`,
+            'subject'
+          );
+        } else {
+          alert(data.message || "Failed to delete subject.");
+        }
+      })
+      .catch(err => {
+        console.error("Delete subject error:", err);
+        alert("An error occurred while deleting the subject.");
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    {% if undo_info and undo_info.expires_at_ms %}
+    startUndoCountdown(
+      {{ undo_info.expires_at_ms }},
+    {{ undo_info.pending_id }},
+    "{{ undo_info.label }} deleted.",
+    "{{ undo_info.type }}"
+  );
+  {% endif %}
+  });
+
+  // Handle Class Switch
+  function onClassChange(classId) {
+    if (!classId) return;
+    window.location.href = "{{ url_for('teacher_dashboard') }}?class_id=" + encodeURIComponent(classId);
+  }
+
+  // Handle Subject Switch
+  function onSubjectChange(subjectId) {
+    const classId = document.getElementById('class_select') ? document.getElementById('class_select').value : '';
+    if (!classId || !subjectId) return;
+    window.location.href = "{{ url_for('teacher_dashboard') }}?class_id=" + encodeURIComponent(classId) + "&subject_id=" + encodeURIComponent(subjectId);
+  }
+
+  // Copy Code to Clipboard with feedback
+  function copyCodeToClipboard(code) {
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      const copyIcon = document.getElementById('copy_icon');
+      if (copyIcon) {
+        copyIcon.classList.remove('bi-clipboard');
+        copyIcon.classList.add('bi-check2');
+        setTimeout(() => {
+          copyIcon.classList.remove('bi-check2');
+          copyIcon.classList.add('bi-clipboard');
+        }, 2000);
+      }
+      alert('Code copied to clipboard: ' + code);
+    }).catch(err => {
+      prompt('Copy code:', code);
+    });
+  }
+
+  // Share Code
+  function shareCode(code, className, subjectName, branch, academicYear, sessionYear) {
+    const text = `CampusSync Enrollment Invitation:
+Subject: ${subjectName}
+Class: ${className}
+Academic Identity: ${branch ? branch + ' – ' + academicYear : className}
+Academic Session: ${sessionYear || '2026–2027'}
+Enrollment Code: ${code}
+
+Students: Log in to your CampusSync account and click 'Join Subject with Code' to enroll!`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'CampusSync Subject Invitation',
+        text: text,
+      }).catch(() => { });
+    } else {
+      copyCodeToClipboard(code);
+    }
+  }
+</script>
+{% endblock %}

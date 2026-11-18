@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Settings — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item" id="nav-item-generate-code">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item active">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <!-- Decorative Books Illustration -->
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z"
+            fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z"
+            fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z"
+            fill="#8870d8" />
+          <path d="M24 60C14 45 28 32 32 30C32 40 28 52 24 60Z" fill="#a491e6" />
+          <path d="M18 78C6 68 15 54 20 52C20 62 18 72 18 78Z" fill="#bfb2ee" />
+        </svg>
+      </div>
+
+      <a href="{{ url_for('logout') }}" class="dash-logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="dash-main-area">
+
+    <!-- TOP HEADER -->
+    <header class="dash-top-header">
+      <div class="dash-header-left">
+        <h1 class="dash-page-title">Settings</h1>
+        <div class="dash-breadcrumb">
+          <span>Teacher Portal</span>
+          <i class="bi bi-chevron-right"></i>
+          <span class="current">Account &amp; Preferences</span>
+        </div>
+      </div>
+
+      <div class="dash-header-right">
+        <div class="dash-user-pill">
+          <div class="user-avatar-circle">
+            {{ teacher['full_name'][:2]|upper }}
+          </div>
+          <div class="user-info-text">
+            <div class="user-name">{{ teacher['full_name'] }}</div>
+            <div class="user-role-badge">Faculty</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content-body">
+
+      <!-- FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="mb-4">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-custom alert-dismissible fade show" role="alert">
+          <div>
+            {% if category == 'danger' %}
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% elif category == 'success' %}
+            <i class="bi bi-check-circle-fill me-2"></i>
+            {% elif category == 'warning' %}
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            {% else %}
+            <i class="bi bi-info-circle-fill me-2"></i>
+            {% endif %}
+            {{ message }}
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card mb-4">
+        <div class="dash-hero-content">
+          <div class="dash-hero-tag">
+            <i class="bi bi-sliders me-1"></i> Preferences
+          </div>
+          <h2 class="dash-hero-greeting">
+            Manage Your <span class="teacher-highlight">Teacher Settings</span>
+          </h2>
+          <p class="dash-hero-sub">
+            Update your profile credentials, secure your password, configure notification preferences, and personalize
+            your theme.
+          </p>
+        </div>
+
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            Simplicity &bull; Security &bull; Style &hearts;
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS SECTIONS GRID -->
+      <div class="row g-4 mb-4">
+
+        <!-- 1. PROFILE SETTINGS -->
+        <div class="col-12 col-lg-6">
+          <div class="dash-box-card h-100">
+            <div class="dash-box-header d-flex align-items-center gap-3">
+              <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+                <i class="bi bi-person-badge"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title">Profile Settings</h2>
+                <p class="dash-box-subtitle">Update your faculty name and official email address.</p>
+              </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('teacher_update_profile') }}" class="mt-3">
+              <div class="form-group-custom mb-3">
+                <label for="profile_name" class="fw-semibold mb-1 small text-dark">Teacher Name *</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-person input-icon-left"></i>
+                  <input type="text" id="profile_name" name="full_name" class="custom-input"
+                    value="{{ teacher['full_name'] }}" required>
+                </div>
+              </div>
+
+              <div class="form-group-custom mb-3">
+                <label for="profile_email" class="fw-semibold mb-1 small text-dark">Email Address *</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-envelope input-icon-left"></i>
+                  <input type="email" id="profile_email" name="email" class="custom-input"
+                    value="{{ teacher['email'] }}" required>
+                </div>
+              </div>
+
+              <div class="form-group-custom mb-3">
+                <label for="profile_password" class="fw-semibold mb-1 small text-dark">
+                  Current Password <span class="text-muted fw-normal">(Required only if changing email)</span>
+                </label>
+                <div class="input-with-icon">
+                  <i class="bi bi-key input-icon-left"></i>
+                  <input type="password" id="profile_password" name="current_password" class="custom-input"
+                    placeholder="Enter current password to verify email change">
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+                  <i class="bi bi-check2-circle me-1"></i> Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 2. CHANGE PASSWORD -->
+        <div class="col-12 col-lg-6">
+          <div class="dash-box-card h-100">
+            <div class="dash-box-header d-flex align-items-center gap-3">
+              <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+                <i class="bi bi-shield-lock"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title">Change Password</h2>
+                <p class="dash-box-subtitle">Ensure your account is protected with a secure password.</p>
+              </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('teacher_change_password') }}" class="mt-3">
+              <div class="form-group-custom mb-3">
+                <label for="curr_password" class="fw-semibold mb-1 small text-dark">Current Password *</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-lock input-icon-left"></i>
+                  <input type="password" id="curr_password" name="current_password" class="custom-input" required>
+                </div>
+              </div>
+
+              <div class="form-group-custom mb-3">
+                <label for="new_password" class="fw-semibold mb-1 small text-dark">New Password *</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-shield-check input-icon-left"></i>
+                  <input type="password" id="new_password" name="new_password" class="custom-input" minlength="6"
+                    placeholder="Minimum 6 characters" required>
+                </div>
+              </div>
+
+              <div class="form-group-custom mb-3">
+                <label for="confirm_password" class="fw-semibold mb-1 small text-dark">Confirm New Password *</label>
+                <div class="input-with-icon">
+                  <i class="bi bi-shield-fill-check input-icon-left"></i>
+                  <input type="password" id="confirm_password" name="confirm_password" class="custom-input"
+                    minlength="6" placeholder="Re-enter new password" required>
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+                  <i class="bi bi-key-fill me-1"></i> Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. APPEARANCE SETTINGS (THEMES) -->
+      <section class="dash-box-card mb-4" id="appearanceSection">
+        <div class="dash-box-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-3">
+            <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+              <i class="bi bi-palette"></i>
+            </div>
+            <div>
+              <h2 class="dash-box-title">Appearance Settings</h2>
+              <p class="dash-box-subtitle">Choose a theme to apply across all your teacher modules.</p>
+            </div>
+          </div>
+
+          <form method="POST" action="{{ url_for('teacher_reset_theme') }}" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-secondary py-1 px-3 rounded-pill">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Reset to Default
+            </button>
+          </form>
+        </div>
+
+        <form method="POST" action="{{ url_for('teacher_update_theme') }}" id="themeForm" class="mt-4">
+          <div class="row g-3">
+
+            <!-- Theme 1: Lavender (Default) -->
+            <div class="col-6 col-md-3">
+              <label class="d-block text-decoration-none h-100" style="cursor: pointer;">
+                <div
+                  class="p-3 rounded-4 border text-center h-100 theme-card {% if settings['theme'] == 'lavender' %}border-2 border-primary shadow-sm{% endif %}"
+                  style="background: #ffffff; transition: all 0.2s ease;">
+                  <input type="radio" name="theme" value="lavender" class="form-check-input mb-2" {% if
+                    settings['theme']=='lavender' %}checked{% endif %} onchange="previewTheme('lavender')">
+
+                  <div class="d-flex justify-content-center align-items-center gap-1 my-2">
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #4d3896; border: 2px solid #ffffff;"></span>
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #ece7f8; border: 1px solid #ded7f3;"></span>
+                  </div>
+
+                  <div class="fw-bold text-dark mt-2">Lavender</div>
+                  <div class="small text-muted mb-2">(Default)</div>
+
+                  {% if settings['theme'] == 'lavender' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                    <i class="bi bi-check2"></i> Active
+                  </span>
+                  {% endif %}
+                </div>
+              </label>
+            </div>
+
+            <!-- Theme 2: Blue -->
+            <div class="col-6 col-md-3">
+              <label class="d-block text-decoration-none h-100" style="cursor: pointer;">
+                <div
+                  class="p-3 rounded-4 border text-center h-100 theme-card {% if settings['theme'] == 'blue' %}border-2 border-primary shadow-sm{% endif %}"
+                  style="background: #ffffff; transition: all 0.2s ease;">
+                  <input type="radio" name="theme" value="blue" class="form-check-input mb-2" {% if
+                    settings['theme']=='blue' %}checked{% endif %} onchange="previewTheme('blue')">
+
+                  <div class="d-flex justify-content-center align-items-center gap-1 my-2">
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #1d5bbf; border: 2px solid #ffffff;"></span>
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #e2edfb; border: 1px solid #cde0f7;"></span>
+                  </div>
+
+                  <div class="fw-bold text-dark mt-2">Ocean Blue</div>
+                  <div class="small text-muted mb-2">Modern Slate</div>
+
+                  {% if settings['theme'] == 'blue' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                    <i class="bi bi-check2"></i> Active
+                  </span>
+                  {% endif %}
+                </div>
+              </label>
+            </div>
+
+            <!-- Theme 3: Green -->
+            <div class="col-6 col-md-3">
+              <label class="d-block text-decoration-none h-100" style="cursor: pointer;">
+                <div
+                  class="p-3 rounded-4 border text-center h-100 theme-card {% if settings['theme'] == 'green' %}border-2 border-primary shadow-sm{% endif %}"
+                  style="background: #ffffff; transition: all 0.2s ease;">
+                  <input type="radio" name="theme" value="green" class="form-check-input mb-2" {% if
+                    settings['theme']=='green' %}checked{% endif %} onchange="previewTheme('green')">
+
+                  <div class="d-flex justify-content-center align-items-center gap-1 my-2">
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #1b7a4b; border: 2px solid #ffffff;"></span>
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #dcf1e4; border: 1px solid #c8e8d5;"></span>
+                  </div>
+
+                  <div class="fw-bold text-dark mt-2">Emerald Green</div>
+                  <div class="small text-muted mb-2">Natural Calm</div>
+
+                  {% if settings['theme'] == 'green' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                    <i class="bi bi-check2"></i> Active
+                  </span>
+                  {% endif %}
+                </div>
+              </label>
+            </div>
+
+            <!-- Theme 4: Orange -->
+            <div class="col-6 col-md-3">
+              <label class="d-block text-decoration-none h-100" style="cursor: pointer;">
+                <div
+                  class="p-3 rounded-4 border text-center h-100 theme-card {% if settings['theme'] == 'orange' %}border-2 border-primary shadow-sm{% endif %}"
+                  style="background: #ffffff; transition: all 0.2s ease;">
+                  <input type="radio" name="theme" value="orange" class="form-check-input mb-2" {% if
+                    settings['theme']=='orange' %}checked{% endif %} onchange="previewTheme('orange')">
+
+                  <div class="d-flex justify-content-center align-items-center gap-1 my-2">
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #c45514; border: 2px solid #ffffff;"></span>
+                    <span class="rounded-circle shadow-sm"
+                      style="width: 24px; height: 24px; background-color: #fbe6d9; border: 1px solid #f5d5c0;"></span>
+                  </div>
+
+                  <div class="fw-bold text-dark mt-2">Sunset Orange</div>
+                  <div class="small text-muted mb-2">Warm Energetic</div>
+
+                  {% if settings['theme'] == 'orange' %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                    <i class="bi bi-check2"></i> Active
+                  </span>
+                  {% endif %}
+                </div>
+              </label>
+            </div>
+
+          </div>
+
+          <div class="mt-4 text-end">
+            <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+              <i class="bi bi-check-lg me-1"></i> Apply Theme
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 4. NOTIFICATION PREFERENCES & 5. ABOUT CAMPUSSYNC -->
+      <div class="row g-4 mb-4">
+
+        <!-- 4. NOTIFICATION PREFERENCES -->
+        <div class="col-12 col-lg-6">
+          <div class="dash-box-card h-100">
+            <div class="dash-box-header d-flex align-items-center gap-3">
+              <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+                <i class="bi bi-bell"></i>
+              </div>
+              <div>
+                <h2 class="dash-box-title">Notification Preferences</h2>
+                <p class="dash-box-subtitle">Configure in-app alerts and notifications.</p>
+              </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('teacher_update_notifications') }}" class="mt-3">
+              <div class="p-3 bg-light rounded-3 mb-3 border">
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" role="switch" id="notify_assignments"
+                    name="notify_assignments" value="1" {% if settings['notify_assignments'] %}checked{% endif %}>
+                  <label class="form-check-label fw-semibold text-dark" for="notify_assignments">
+                    Assignment Submissions
+                  </label>
+                  <div class="text-muted small">Show alerts when students submit assignments.</div>
+                </div>
+              </div>
+
+              <div class="p-3 bg-light rounded-3 mb-3 border">
+                <div class="form-check form-switch mb-2">
+                  <input class="form-check-input" type="checkbox" role="switch" id="notify_notices"
+                    name="notify_notices" value="1" {% if settings['notify_notices'] %}checked{% endif %}>
+                  <label class="form-check-label fw-semibold text-dark" for="notify_notices">
+                    Notice Board Updates
+                  </label>
+                  <div class="text-muted small">Receive notifications when announcements are published.</div>
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" class="btn-primary-purple py-2 px-4" style="width: auto;">
+                  <i class="bi bi-bell-fill me-1"></i> Save Preferences
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 5. ABOUT CAMPUSSYNC -->
+        <div class="col-12 col-lg-6">
+          <div class="dash-box-card h-100 d-flex flex-column justify-content-between">
+            <div>
+              <div class="dash-box-header d-flex align-items-center gap-3">
+                <div class="dash-box-header-icon" style="background: var(--bg-lavender); color: var(--primary-purple);">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div>
+                  <h2 class="dash-box-title">About CampusSync</h2>
+                  <p class="dash-box-subtitle">Integrated Smart Campus Platform</p>
+                </div>
+              </div>
+
+              <div class="mt-3 p-3 bg-light rounded-3 border">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                  <div class="brand-icon" style="width: 44px; height: 44px; font-size: 1.4rem;">
+                    <i class="bi bi-mortarboard-fill"></i>
+                  </div>
+                  <div>
+                    <h5 class="fw-bold mb-0 text-navy">CampusSync</h5>
+                    <div class="text-muted small">Connect &bull; Learn &bull; Grow</div>
+                  </div>
+                </div>
+
+                <p class="text-muted small mb-0 mt-3" style="line-height: 1.6;">
+                  CampusSync is a unified digital platform built for college faculty and students. It streamlines
+                  classroom code generation, biometric face-scan attendance, assignment evaluation, written test
+                  grading, timetables, notice broadcasting, and fee structures.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-top text-muted small d-flex justify-content-between align-items-center">
+              <span>Security &bull; Role-Based Access</span>
+              <span class="text-navy fw-semibold">&copy; CampusSync Platform</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+  // Live client-side theme preview on radio select
+  function previewTheme(themeName) {
+    document.body.setAttribute('data-theme', themeName);
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+
+# Database and backups
+*.db
+*.sqlite
+*.sqlite3
+backups/
+backups_*/
+*.bak
+
+# Student uploads and private data
+uploads/
+
+# Temporary browser files
+tmp_chrome_e2e/
+Crashpad/
+
+# IoT configuration
+iot_config.json
+
+# Logs
+*.log
+
+# Private investigation dumps
+prompt_dump.txt
