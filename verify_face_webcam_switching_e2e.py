@@ -33,7 +33,7 @@ def run_tests():
     conn.close()
 
     # 2. Prepare images
-    with open("uploads/faces/student_1057_a8df9d3c.jpg", "rb") as f:
+    with open("uploads/faces/student_1057_96d3f84b.jpg", "rb") as f:
         priyanka_b64 = "data:image/jpeg;base64," + base64.b64encode(f.read()).decode('utf-8')
     with open("uploads/faces/student_1057_5eab4700.jpg", "rb") as f:
         priyanka_frame2_b64 = "data:image/jpeg;base64," + base64.b64encode(f.read()).decode('utf-8')

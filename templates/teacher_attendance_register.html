@@ -351,6 +351,20 @@
           </div>
 
           <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Download PDF Button -->
+            <a href="{{ url_for('download_attendance_pdf', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=month, year=year) }}"
+              class="btn btn-sm btn-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1 text-danger"
+              id="btn-download-pdf" title="Download Printable PDF Attendance Report">
+              <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+            </a>
+
+            <!-- Download Excel Button -->
+            <a href="{{ url_for('download_attendance_excel', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=month, year=year) }}"
+              class="btn btn-sm btn-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1 text-success"
+              id="btn-download-excel" title="Download Excel (.xlsx) Attendance Spreadsheet">
+              <i class="bi bi-file-earmark-excel-fill"></i> Download Excel
+            </a>
+
             <!-- Previous Month Button -->
             <a href="{{ url_for('teacher_overall_attendance', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=prev_month, year=prev_year) }}"
               class="btn btn-sm btn-light rounded-pill px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
@@ -480,19 +494,35 @@
             </span>
           </div>
 
-          <!-- Legend -->
-          <div class="d-flex align-items-center gap-3 small text-muted">
-            <span class="d-flex align-items-center gap-1">
-              <span class="cell-status-p"
-                style="width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem;">P</span> Present
-            </span>
-            <span class="d-flex align-items-center gap-1">
-              <span class="cell-status-a"
-                style="width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem;">A</span> Absent
-            </span>
-            <span class="d-flex align-items-center gap-1">
-              <span class="cell-status-none" style="font-size: 1rem; line-height: 1;">-</span> No Session / Record
-            </span>
+          <!-- Export Buttons & Legend -->
+          <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+              <a href="{{ url_for('download_attendance_pdf', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=month, year=year) }}"
+                class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
+                id="btn-download-pdf-filter" title="Export as PDF Document">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+              </a>
+              <a href="{{ url_for('download_attendance_excel', class_id=selected_class['id'] if selected_class else '', subject_id=selected_subject['id'] if selected_subject else '', month=month, year=year) }}"
+                class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold shadow-sm d-inline-flex align-items-center gap-1"
+                id="btn-download-excel-filter" title="Export as Excel Spreadsheet">
+                <i class="bi bi-file-earmark-excel-fill"></i> Download Excel
+              </a>
+            </div>
+
+            <!-- Legend -->
+            <div class="d-flex align-items-center gap-3 small text-muted border-start ps-3">
+              <span class="d-flex align-items-center gap-1">
+                <span class="cell-status-p"
+                  style="width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem;">P</span> Present
+              </span>
+              <span class="d-flex align-items-center gap-1">
+                <span class="cell-status-a"
+                  style="width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem;">A</span> Absent
+              </span>
+              <span class="d-flex align-items-center gap-1">
+                <span class="cell-status-none" style="font-size: 1rem; line-height: 1;">-</span> No Session / Record
+              </span>
+            </div>
           </div>
         </div>
       </div>

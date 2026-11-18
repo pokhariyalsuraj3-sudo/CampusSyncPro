@@ -53,6 +53,7 @@ from database import (
 )
 from face_service import FaceRecognitionService
 from iot_service import IoTAttendanceService
+from export_service import generate_attendance_excel, generate_attendance_pdf, generate_export_filename
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'campus-sync-super-secret-key-2026')
@@ -1814,6 +1815,140 @@ def teacher_overall_attendance():
         students=students,
         summary=summary
     )
+
+def _handle_attendance_export(export_format='pdf'):
+    """Helper function to validate teacher authorization and stream PDF or Excel reports."""
+    import calendar
+    from datetime import datetime
+
+    teacher_id = session['teacher_id']
+    classes = get_classes_by_teacher(teacher_id)
+    if not classes:
+        flash("No authorized classes found for export.", "warning")
+        return redirect(url_for('teacher_dashboard'))
+
+    # 1. Validate requested class_id and verify teacher authorization
+    try:
+        class_id = int(request.args.get('class_id', 0))
+    except (ValueError, TypeError):
+        class_id = 0
+
+    selected_class = next((c for c in classes if c['id'] == class_id), None)
+    if not selected_class:
+        # Teacher is not authorized for this class_id
+        abort(403)
+
+    # Class metadata & academic identity enrichment
+    class_info = dict(selected_class)
+    if class_info.get('academic_identity_id'):
+        ident = get_academic_identity_by_id(class_info['academic_identity_id'])
+        if ident:
+            ident_dict = dict(ident)
+            class_info['branch'] = ident_dict.get('branch', 'Information Technology')
+            class_info['academic_year'] = ident_dict.get('academic_year', '')
+            class_info['academic_session'] = ident_dict.get('academic_session', '')
+
+    # 2. Validate requested subject_id (scoped to class and teacher)
+    subjects = get_subjects_by_class(selected_class['id'], teacher_id)
+    subject_id_str = request.args.get('subject_id')
+    selected_subject = None
+    if subject_id_str:
+        try:
+            sid = int(subject_id_str)
+            selected_subject = next((s for s in subjects if s['id'] == sid), None)
+        except (ValueError, TypeError):
+            selected_subject = None
+
+    # 3. Validate month and year parameters
+    now = datetime.now()
+    try:
+        month = int(request.args.get('month', now.month))
+        if month < 1 or month > 12:
+            month = now.month
+    except (ValueError, TypeError):
+        month = now.month
+
+    try:
+        year = int(request.args.get('year', now.year))
+        if year < 2020 or year > 2035:
+            year = now.year
+    except (ValueError, TypeError):
+        year = now.year
+
+    month_name = calendar.month_name[month]
+
+    # 4. Fetch overall attendance register matrix using existing authoritative queries
+    sub_id = selected_subject['id'] if selected_subject else None
+    days, session_dates, students, summary = get_overall_attendance_register(
+        class_id=selected_class['id'],
+        subject_id=sub_id,
+        year=year,
+        month=month
+    )
+
+    subject_info = dict(selected_subject) if selected_subject else None
+
+    # 5. Generate and stream requested export format
+    if export_format == 'excel':
+        buf = generate_attendance_excel(
+            class_info=class_info,
+            subject_info=subject_info,
+            year=year,
+            month=month,
+            days=days,
+            session_dates=session_dates,
+            students=students,
+            summary=summary
+        )
+        filename = generate_export_filename(
+            class_name=selected_class['name'],
+            subject_name=selected_subject['name'] if selected_subject else None,
+            month_name=month_name,
+            year=year,
+            extension='xlsx'
+        )
+        return send_file(
+            buf,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    else:
+        buf = generate_attendance_pdf(
+            class_info=class_info,
+            subject_info=subject_info,
+            year=year,
+            month=month,
+            days=days,
+            session_dates=session_dates,
+            students=students,
+            summary=summary
+        )
+        filename = generate_export_filename(
+            class_name=selected_class['name'],
+            subject_name=selected_subject['name'] if selected_subject else None,
+            month_name=month_name,
+            year=year,
+            extension='pdf'
+        )
+        return send_file(
+            buf,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+
+@app.route('/teacher/attendance/export/pdf', methods=['GET'])
+@teacher_login_required
+def download_attendance_pdf():
+    """Generates and downloads a printable PDF of the Overall Attendance Register."""
+    return _handle_attendance_export(export_format='pdf')
+
+@app.route('/teacher/attendance/export/excel', methods=['GET'])
+@teacher_login_required
+def download_attendance_excel():
+    """Generates and downloads an Excel (.xlsx) spreadsheet of the Overall Attendance Register."""
+    return _handle_attendance_export(export_format='excel')
 
 @app.route('/teacher/attendance/start-session', methods=['POST'])
 @teacher_login_required
