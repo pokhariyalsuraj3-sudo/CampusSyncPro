@@ -33,3 +33,4 @@ iot_config.json
 
 # Private investigation dumps
 prompt_dump.txt
+scratch*
