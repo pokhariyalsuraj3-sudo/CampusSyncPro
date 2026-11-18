@@ -14,8 +14,8 @@ class FaceRecognitionService:
 
     FEATURE_DIM = 128
     IMAGE_SIZE = (64, 64)
-    SIMILARITY_THRESHOLD = 0.40  # Statistically calibrated cosine threshold preventing false-positive cross-matches
-    AMBIGUITY_MARGIN = 0.05      # Required margin between top and runner-up candidate to prevent ambiguous identification
+    SIMILARITY_THRESHOLD = 0.43  # Statistically calibrated cosine threshold for multi-student recognition preventing false cross-matches
+    AMBIGUITY_MARGIN = 0.04      # Required margin between top and runner-up candidate to prevent ambiguous identification
 
     @classmethod
     def decode_image(cls, image_data):
@@ -44,7 +44,7 @@ class FaceRecognitionService:
         """
         Prototype image quality and liveness checks:
         Evaluates lighting, overexposure, texture variance, and blur/focus to provide
-        actionable feedback for classroom webcam captures.
+        actionable feedback for classroom webcam captures under normal indoor lighting.
         """
         if not image:
             return False, "No image captured."
@@ -55,17 +55,17 @@ class FaceRecognitionService:
         mean_val = float(np.mean(arr))
         var_val = float(np.var(arr))
 
-        if mean_val < 30.0:
+        if mean_val < 18.0:
             return False, "Face not detected: lighting too dark. Please face a light source or move to a brighter area."
-        if mean_val > 240.0:
+        if mean_val > 248.0:
             return False, "Face not detected: image overexposed or excessive backlighting. Please adjust camera position."
-        if var_val < 140.0:
+        if var_val < 45.0:
             return False, "Face not detected. Please position your face inside the camera guide."
 
         # Blur and sharpness detection via gradient magnitude variance
         gy, gx = np.gradient(arr)
         sharpness = float(np.var(np.sqrt(gx**2 + gy**2)))
-        if sharpness < 15.0:
+        if sharpness < 10.0:
             return False, "Image is blurry. Please hold steady and keep your face in focus."
 
         return True, "Quality checks passed."
@@ -90,7 +90,7 @@ class FaceRecognitionService:
             from PIL import ImageOps
 
             w, h = image.size
-            # Guide crop (matches attendance camera guide oval)
+            # Guide crop (matches attendance camera guide oval) and Core face crop
             if w / h >= 1.2:
                 crop_guide = (int(w * 0.22), int(h * 0.12), int(w * 0.78), int(h * 0.88))
                 crop_core = (int(w * 0.27), int(h * 0.17), int(w * 0.73), int(h * 0.83))
@@ -99,9 +99,10 @@ class FaceRecognitionService:
                 crop_core = (int(w * 0.08), int(h * 0.08), int(w * 0.92), int(h * 0.92))
 
             def _get_dct_vec(crop_box):
-                face_img = image.crop(crop_box)
+                cb = (max(0, crop_box[0]), max(0, crop_box[1]), min(w, crop_box[2]), min(h, crop_box[3]))
+                face_img = image.crop(cb)
                 gray = face_img.convert('L').resize(cls.IMAGE_SIZE, Image.Resampling.LANCZOS)
-                eq = ImageOps.autocontrast(gray)
+                eq = ImageOps.autocontrast(gray, cutoff=1)
                 arr = np.array(eq, dtype=np.float32)
 
                 # Histogram / Contrast normalization (Z-score standardization)
@@ -133,11 +134,10 @@ class FaceRecognitionService:
                 norm = np.linalg.norm(vec)
                 return (vec / norm).tolist() if norm > 0 else vec.tolist()
 
-            vec_guide = _get_dct_vec(crop_guide)
-            vec_core = _get_dct_vec(crop_core)
-
-            # Store multi-view dictionary for maximum capture resilience
-            desc_dict = {'crop': vec_guide, 'core': vec_core}
+            desc_dict = {
+                'crop': _get_dct_vec(crop_guide),
+                'core': _get_dct_vec(crop_core)
+            }
             return json.dumps(desc_dict), None
         except Exception as e:
             return None, f"Feature extraction failed: {str(e)}"

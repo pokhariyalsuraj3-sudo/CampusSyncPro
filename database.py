@@ -618,6 +618,27 @@ def init_db():
         WHERE (roll_number IS NULL OR roll_number = '') AND student_id IS NOT NULL
     ''')
 
+    # Student Trash / Recycle Bin table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS student_trash (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            student_id INTEGER NOT NULL,
+            teacher_id INTEGER NOT NULL,
+            class_id INTEGER NOT NULL,
+            previous_roll_number TEXT,
+            deletion_type TEXT DEFAULT 'class',
+            subject_id INTEGER,
+            deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_by_name TEXT,
+            restored_at TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+            FOREIGN KEY (teacher_id) REFERENCES teachers(id),
+            FOREIGN KEY (class_id) REFERENCES classes(id)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_student_trash_teacher ON student_trash(teacher_id, class_id)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_student_trash_student ON student_trash(student_id)')
+
     conn.commit()
     conn.close()
 
@@ -1689,15 +1710,30 @@ def remove_student_from_class(teacher_id, student_id, class_id):
         if existing_sse:
             cursor.execute('''
                 UPDATE student_subject_enrollments
-                SET status = 'dropped'
+                SET status = 'dropped', roll_number = NULL
                 WHERE (student_id = ? OR student_id IN (SELECT id FROM students WHERE lower(email) = lower(?)))
                   AND class_id = ?
             ''', (student_id, st_email, class_id))
         elif dummy_sub_id:
             cursor.execute('''
                 INSERT INTO student_subject_enrollments (student_id, class_id, subject_id, teacher_id, status, roll_number)
-                VALUES (?, ?, ?, ?, 'dropped', ?)
-            ''', (student_id, class_id, dummy_sub_id, teacher_id, student.get('roll_number')))
+                VALUES (?, ?, ?, ?, 'dropped', NULL)
+            ''', (student_id, class_id, dummy_sub_id, teacher_id))
+
+        # Record into student_trash / Recycle Bin with previous roll number and deletion metadata
+        cursor.execute('SELECT full_name FROM teachers WHERE id = ?', (teacher_id,))
+        t_row = cursor.fetchone()
+        t_name = t_row['full_name'] if t_row else f"Teacher #{teacher_id}"
+
+        cursor.execute('''
+            INSERT INTO student_trash (student_id, teacher_id, class_id, previous_roll_number, deletion_type, deleted_by_name)
+            VALUES (?, ?, ?, ?, 'class', ?)
+        ''', (student_id, teacher_id, class_id, student['roll_number'], t_name))
+
+        # Release roll number in students table for this class so that active students can reuse it immediately
+        cursor.execute('''
+            UPDATE students SET roll_number = NULL WHERE id = ? AND class_id = ?
+        ''', (student_id, class_id))
 
         # If there are duplicate student records for the same email in other classes,
         # only deactivate the record for THIS class if other active records exist.
@@ -2656,6 +2692,7 @@ def assign_student_roll_number(teacher_id, student_id, roll_number, class_id=Non
 
         academic_id = student_row['academic_identity_id']
         st_email = student_row['email'] or ''
+        cls_id = class_id or student_row['class_id']
         if academic_id:
             cursor.execute('''
                 SELECT id, full_name FROM students
@@ -2663,22 +2700,25 @@ def assign_student_roll_number(teacher_id, student_id, roll_number, class_id=Non
                   AND lower(trim(roll_number)) = lower(?) 
                   AND id != ?
                   AND lower(email) != lower(?)
-            ''', (academic_id, clean_roll, student_id, st_email))
+                  AND (is_active = 1 OR is_active IS NULL)
+                  AND id NOT IN (SELECT student_id FROM student_trash WHERE class_id = ? AND restored_at IS NULL)
+            ''', (academic_id, clean_roll, student_id, st_email, cls_id))
             conflict = cursor.fetchone()
             if conflict:
-                return False, f"Roll Number '{clean_roll}' is already assigned to student '{conflict['full_name']}' in this academic class."
+                return False, f"Roll Number '{clean_roll}' is already assigned to active student '{conflict['full_name']}' in this academic class."
         else:
-            cls_id = class_id or student_row['class_id']
             cursor.execute('''
                 SELECT id, full_name FROM students
                 WHERE class_id = ? 
                   AND lower(trim(roll_number)) = lower(?) 
                   AND id != ?
                   AND lower(email) != lower(?)
-            ''', (cls_id, clean_roll, student_id, st_email))
+                  AND (is_active = 1 OR is_active IS NULL)
+                  AND id NOT IN (SELECT student_id FROM student_trash WHERE class_id = ? AND restored_at IS NULL)
+            ''', (cls_id, clean_roll, student_id, st_email, cls_id))
             conflict = cursor.fetchone()
             if conflict:
-                return False, f"Roll Number '{clean_roll}' is already assigned to student '{conflict['full_name']}' in this class."
+                return False, f"Roll Number '{clean_roll}' is already assigned to active student '{conflict['full_name']}' in this class."
 
         # Update student's fixed roll number consistently across canonical record and all subject enrollments
         cursor.execute('''
@@ -2934,10 +2974,15 @@ def get_enrolled_faces_for_class(class_id, subject_id=None):
                 AND sse.subject_id = ? 
                 AND sse.status = 'active'
             JOIN student_face_enrollments fe 
-                ON (fe.student_id = s.id OR lower(s.email) = (SELECT lower(s_sub.email) FROM students s_sub WHERE s_sub.id = fe.student_id))
+                ON fe.id = (
+                    SELECT fe2.id FROM student_face_enrollments fe2 
+                    WHERE (fe2.student_id = s.id OR lower(s.email) = (SELECT lower(s_sub.email) FROM students s_sub WHERE s_sub.id = fe2.student_id))
+                      AND fe2.consent_given = 1
+                    ORDER BY fe2.id DESC LIMIT 1
+                )
             WHERE sse.status = 'active'
               AND fe.consent_given = 1
-            GROUP BY lower(s.email)
+            GROUP BY s.id
         ''', (class_id, class_id, subject_id))
     else:
         cursor.execute('''
@@ -2960,7 +3005,12 @@ def get_enrolled_faces_for_class(class_id, subject_id=None):
                 AND sse.class_id = ? 
                 AND sse.status = 'active'
             JOIN student_face_enrollments fe 
-                ON (fe.student_id = s.id OR lower(s.email) = (SELECT lower(s_sub.email) FROM students s_sub WHERE s_sub.id = fe.student_id))
+                ON fe.id = (
+                    SELECT fe2.id FROM student_face_enrollments fe2 
+                    WHERE (fe2.student_id = s.id OR lower(s.email) = (SELECT lower(s_sub.email) FROM students s_sub WHERE s_sub.id = fe2.student_id))
+                      AND fe2.consent_given = 1
+                    ORDER BY fe2.id DESC LIMIT 1
+                )
             WHERE (
                 (sse.id IS NOT NULL AND sse.status = 'active')
                 OR (
@@ -2974,7 +3024,7 @@ def get_enrolled_faces_for_class(class_id, subject_id=None):
                 )
             )
             AND fe.consent_given = 1
-            GROUP BY lower(s.email)
+            GROUP BY s.id
         ''', (class_id, class_id, class_id))
     rows = cursor.fetchall()
     conn.close()
@@ -4716,6 +4766,273 @@ def get_student_fees_view_data(student_id, academic_session='2026–2027'):
                 qr_code = dict(qr_row)
 
         return dict(cls) if cls else None, fee_items, qr_code
+    finally:
+        conn.close()
+
+# ----------------- TEACHER MODULE STUDENT TRASH & RECYCLE BIN -----------------
+
+def get_trashed_students_by_teacher(teacher_id, class_id=None):
+    """
+    Retrieves all deleted/trashed students from classes owned by the logged-in teacher.
+    Preserves and computes historical attendance, assignment submission, and test mark counts.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = '''
+            SELECT 
+                t.id AS trash_id,
+                t.student_id,
+                s.full_name,
+                s.email,
+                t.class_id,
+                c.name AS class_name,
+                t.previous_roll_number,
+                t.deletion_type,
+                t.subject_id,
+                sub.name AS subject_name,
+                t.deleted_at,
+                t.deleted_by_name,
+                (SELECT COUNT(*) FROM attendance_records ar WHERE ar.student_id = t.student_id AND ar.class_id = t.class_id AND ar.status = 'Present') AS attendance_count,
+                (SELECT COUNT(*) FROM assignment_submissions asub WHERE asub.student_id = t.student_id) AS submissions_count,
+                (SELECT COUNT(*) FROM test_marks tm WHERE tm.student_id = t.student_id) AS marks_count
+            FROM student_trash t
+            JOIN students s ON t.student_id = s.id
+            JOIN classes c ON t.class_id = c.id
+            LEFT JOIN subjects sub ON t.subject_id = sub.id
+            WHERE t.teacher_id = ? AND t.restored_at IS NULL
+        '''
+        params = [teacher_id]
+        if class_id:
+            query += ' AND t.class_id = ?'
+            params.append(class_id)
+        query += ' ORDER BY t.deleted_at DESC'
+        cursor.execute(query, params)
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+def get_trashed_student_details(teacher_id, trash_id):
+    """
+    Retrieves complete academic history for a trashed student:
+    - Profile & deletion details
+    - Attendance history
+    - Assignment submissions
+    - Written test marks
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT 
+                t.id AS trash_id,
+                t.student_id,
+                s.full_name,
+                s.email,
+                t.class_id,
+                c.name AS class_name,
+                t.previous_roll_number,
+                t.deletion_type,
+                t.subject_id,
+                sub.name AS subject_name,
+                t.deleted_at,
+                t.deleted_by_name
+            FROM student_trash t
+            JOIN students s ON t.student_id = s.id
+            JOIN classes c ON t.class_id = c.id
+            LEFT JOIN subjects sub ON t.subject_id = sub.id
+            WHERE t.id = ? AND t.teacher_id = ? AND t.restored_at IS NULL
+        ''', (trash_id, teacher_id))
+        trash_info = cursor.fetchone()
+        if not trash_info:
+            return None
+
+        student_id = trash_info['student_id']
+        class_id = trash_info['class_id']
+
+        # Historical Attendance Records
+        cursor.execute('''
+            SELECT 
+                ar.id,
+                ar.marked_at,
+                ar.status,
+                ar.verification_method,
+                ar.scan_time,
+                sub.name AS subject_name
+            FROM attendance_records ar
+            LEFT JOIN subjects sub ON ar.subject_id = sub.id
+            WHERE ar.student_id = ? AND ar.class_id = ?
+            ORDER BY ar.marked_at DESC
+        ''', (student_id, class_id))
+        attendance = [dict(r) for r in cursor.fetchall()]
+
+        # Historical Assignment Submissions
+        cursor.execute('''
+            SELECT 
+                asub.id,
+                asub.submitted_at,
+                asub.marks,
+                asub.checked,
+                a.title AS assignment_title,
+                a.max_marks
+            FROM assignment_submissions asub
+            JOIN assignments a ON asub.assignment_id = a.id
+            WHERE asub.student_id = ?
+            ORDER BY asub.submitted_at DESC
+        ''', (student_id,))
+        submissions = [dict(r) for r in cursor.fetchall()]
+
+        # Historical Written Test Marks
+        cursor.execute('''
+            SELECT 
+                tm.id,
+                tm.marks_obtained,
+                tm.created_at,
+                wt.title AS test_title,
+                wt.max_marks,
+                wt.test_date
+            FROM test_marks tm
+            JOIN written_tests wt ON tm.test_id = wt.id
+            WHERE tm.student_id = ?
+            ORDER BY wt.test_date DESC
+        ''', (student_id,))
+        marks = [dict(r) for r in cursor.fetchall()]
+
+        return {
+            'trash': dict(trash_info),
+            'attendance': attendance,
+            'submissions': submissions,
+            'marks': marks
+        }
+    finally:
+        conn.close()
+
+def restore_trashed_student(teacher_id, trash_id, new_roll_number=None):
+    """
+    Restores a deleted student back to the active class roster.
+    Validates active roll number uniqueness:
+      - If previous_roll_number is already taken by another active student, requires new_roll_number.
+      - If new_roll_number is provided, validates uniqueness within the active class scope.
+    Preserves all historical attendance, submissions, and marks.
+    Returns (success: bool, error_message: str | None).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT t.id, t.student_id, t.class_id, t.previous_roll_number, s.full_name, s.email, c.academic_identity_id
+            FROM student_trash t
+            JOIN students s ON t.student_id = s.id
+            JOIN classes c ON t.class_id = c.id
+            WHERE t.id = ? AND t.teacher_id = ? AND t.restored_at IS NULL
+        ''', (trash_id, teacher_id))
+        t = cursor.fetchone()
+        if not t:
+            return False, "Trashed student record not found or unauthorized."
+
+        student_id = t['student_id']
+        class_id = t['class_id']
+        prev_roll = t['previous_roll_number']
+        academic_id = t['academic_identity_id']
+
+        target_roll = (new_roll_number.strip() if new_roll_number and str(new_roll_number).strip() else prev_roll)
+        if target_roll:
+            target_roll = str(target_roll).strip()
+            # Active Roll Number Uniqueness Check:
+            # Must check if another ACTIVE student in this class currently holds this roll number
+            cursor.execute('''
+                SELECT s.id, s.full_name FROM students s
+                WHERE (s.class_id = ? OR (? IS NOT NULL AND s.academic_identity_id = ?))
+                  AND lower(trim(s.roll_number)) = lower(?)
+                  AND s.id != ?
+                  AND (s.is_active = 1 OR s.is_active IS NULL)
+                  AND s.id NOT IN (SELECT student_id FROM student_trash WHERE class_id = ? AND restored_at IS NULL)
+            ''', (class_id, academic_id, academic_id, target_roll, student_id, class_id))
+            conflict = cursor.fetchone()
+            if conflict:
+                return False, f"Roll Number '{target_roll}' is already in use by active student '{conflict['full_name']}'. Please specify a different available roll number to restore."
+
+        # Reactivate enrollment in student_subject_enrollments
+        cursor.execute('''
+            UPDATE student_subject_enrollments
+            SET status = 'active', roll_number = ?
+            WHERE student_id = ? AND class_id = ?
+        ''', (target_roll, student_id, class_id))
+
+        # Reactivate student record in students table
+        cursor.execute('''
+            UPDATE students
+            SET class_id = ?, roll_number = ?, is_active = 1
+            WHERE id = ?
+        ''', (class_id, target_roll, student_id))
+
+        # Mark as restored in student_trash
+        cursor.execute('''
+            UPDATE student_trash
+            SET restored_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (trash_id,))
+
+        conn.commit()
+        return True, None
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
+    finally:
+        conn.close()
+
+def permanently_delete_trashed_student(teacher_id, trash_id):
+    """
+    Permanently erases a trashed student record upon explicit confirmation.
+    Validates teacher class ownership.
+    If the student has no other active class enrollments, cleans up student and biometrics safely.
+    Returns (success: bool, error_message: str | None).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT t.id, t.student_id, t.class_id, s.full_name
+            FROM student_trash t
+            JOIN students s ON t.student_id = s.id
+            WHERE t.id = ? AND t.teacher_id = ? AND t.restored_at IS NULL
+        ''', (trash_id, teacher_id))
+        t = cursor.fetchone()
+        if not t:
+            return False, "Trashed student record not found or unauthorized."
+
+        student_id = t['student_id']
+        class_id = t['class_id']
+
+        # Remove from trash
+        cursor.execute('DELETE FROM student_trash WHERE id = ?', (trash_id,))
+
+        # Remove dropped enrollments for this class
+        cursor.execute('''
+            DELETE FROM student_subject_enrollments 
+            WHERE student_id = ? AND class_id = ?
+        ''', (student_id, class_id))
+
+        # Check if student is actively enrolled in any other class
+        cursor.execute('''
+            SELECT 1 FROM student_subject_enrollments 
+            WHERE student_id = ? AND status = 'active'
+            UNION
+            SELECT 1 FROM students 
+            WHERE id = ? AND class_id != ? AND (is_active = 1 OR is_active IS NULL)
+        ''', (student_id, student_id, class_id))
+        has_other_active = cursor.fetchone()
+
+        if not has_other_active:
+            # Completely clean up orphan student account and biometrics
+            cursor.execute('DELETE FROM student_face_enrollments WHERE student_id = ?', (student_id,))
+            cursor.execute('DELETE FROM students WHERE id = ?', (student_id,))
+
+        conn.commit()
+        return True, None
+    except Exception as e:
+        conn.rollback()
+        return False, str(e)
     finally:
         conn.close()
 

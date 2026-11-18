@@ -20,9 +20,9 @@
  *   - GND     -------------------> Breadboard Ground Rail
  *
  * Behavior:
- *   - PRESENT event: Green LED ON (2.5s) + Buzzer short beep (~200ms), Red LED OFF
+ *   - PRESENT event: Green LED ON (2.5s), Buzzer SILENT, Red LED OFF
  *   - ABSENT event : Red LED ON (2.5s)   + Buzzer short beep (~200ms), Green LED OFF
- *   - Self-test on boot: Green LED -> Red LED -> Short Chirp
+ *   - IDLE / UNKNOWN: Green LED OFF, Red LED OFF, Buzzer OFF
  *   - Hardware is 100% OPTIONAL: CampusSync operates normally if node is offline.
  * ==============================================================================
  */
@@ -119,25 +119,23 @@ void buzzerOff() {
 }
 
 void triggerPresentFeedback(const String& studentName, const String& rollNumber) {
-  // Clear any active absent indicators
+  // Clear any active absent indicators and ensure buzzer is silent
   digitalWrite(PIN_LED_RED, LOW);
   redLedActive = false;
+  buzzerOff();
 
   // Turn on Green LED
   digitalWrite(PIN_LED_GREEN, HIGH);
   greenLedActive = true;
   greenLedOffTime = millis() + DURATION_PRESENT_LED_MS;
 
-  // Turn on Buzzer
-  buzzerOn();
-  buzzerOffTime = millis() + DURATION_PRESENT_BEEP_MS;
-
+  // Buzzer remains SILENT on Present attendance
   lastEventType   = "PRESENT";
   lastStudentName = studentName;
   lastRollNumber  = rollNumber;
   lastEventTime   = millis();
 
-  Serial.printf("[FEEDBACK] Present: %s (%s) -> Green LED ON, Buzzer Beep\n",
+  Serial.printf("[FEEDBACK] Present: %s (%s) -> Green LED ON (Buzzer SILENT)\n",
                 studentName.c_str(), rollNumber.c_str());
 }
 
@@ -330,12 +328,12 @@ void handleEvent() {
 // Quick testing endpoints for web browser testing
 void handleTestPresent() {
   triggerPresentFeedback("Test Student", "CS-TEST");
-  server.send(200, "text/plain", "OK: Present test feedback triggered (Green LED + Buzzer Beep)");
+  server.send(200, "text/plain", "OK: Present test feedback triggered (Green LED ON, Buzzer Silent)");
 }
 
 void handleTestAbsent() {
   triggerAbsentFeedback("Test Student", "CS-TEST");
-  server.send(200, "text/plain", "OK: Absent test feedback triggered (Red LED, no buzzer)");
+  server.send(200, "text/plain", "OK: Absent test feedback triggered (Red LED ON, Buzzer Beep)");
 }
 
 void handleNotFound() {

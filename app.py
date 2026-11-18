@@ -49,7 +49,9 @@ from database import (
     VALID_THEMES, get_teacher_settings, update_teacher_theme,
     update_teacher_notifications, update_teacher_profile, update_teacher_password,
     get_or_create_academic_identity, get_academic_identity_by_id,
-    get_all_academic_identities, get_timetable_for_academic_identity
+    get_all_academic_identities, get_timetable_for_academic_identity,
+    get_trashed_students_by_teacher, get_trashed_student_details,
+    restore_trashed_student, permanently_delete_trashed_student
 )
 from face_service import FaceRecognitionService
 from iot_service import IoTAttendanceService
@@ -1265,6 +1267,127 @@ def remove_student_class_route():
         return redirect(redirect_to)
     return redirect(url_for('teacher_dashboard', class_id=class_id))
 
+# ----------------- TEACHER MODULE STUDENT TRASH ROUTES -----------------
+
+@app.route('/teacher/trash', methods=['GET'])
+@teacher_login_required
+def teacher_trash():
+    """
+    Displays the Teacher Module Student Trash / Recycle Bin.
+    Allows teachers to view deleted students from their authorized classes,
+    view their preserved academic records (attendance, submissions, marks),
+    restore students (with collision validation), or permanently delete them.
+    """
+    teacher_id = session['teacher_id']
+    classes = get_classes_by_teacher(teacher_id)
+
+    selected_class_id = request.args.get('class_id')
+    try:
+        selected_class_id = int(selected_class_id) if selected_class_id else None
+    except (ValueError, TypeError):
+        selected_class_id = None
+
+    trashed_students = get_trashed_students_by_teacher(teacher_id, selected_class_id)
+
+    return render_template(
+        'teacher_trash.html',
+        classes=classes,
+        selected_class_id=selected_class_id,
+        trashed_students=trashed_students,
+        active_nav='trash'
+    )
+
+@app.route('/teacher/trash/details/<int:trash_id>', methods=['GET'])
+@teacher_login_required
+def teacher_trash_details(trash_id):
+    """Returns complete historical academic details for a trashed student."""
+    teacher_id = session['teacher_id']
+    details = get_trashed_student_details(teacher_id, trash_id)
+    if not details:
+        return jsonify({'success': False, 'message': 'Trashed student not found or unauthorized.'}), 404
+    return jsonify({'success': True, 'details': details})
+
+@app.route('/teacher/trash/restore', methods=['POST'])
+@teacher_login_required
+def teacher_trash_restore():
+    """
+    Restores a deleted student back into active class enrollment.
+    Enforces active roll number collision checks.
+    """
+    teacher_id = session['teacher_id']
+    is_ajax = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
+    data = request.get_json(silent=True) or request.form
+
+    trash_id = data.get('trash_id')
+    new_roll_number = data.get('new_roll_number')
+    redirect_to = data.get('redirect_to') or url_for('teacher_trash')
+
+    if not trash_id:
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Trash ID is required.'}), 400
+        flash("Trash ID is required.", "danger")
+        return redirect(redirect_to)
+
+    try:
+        trash_id = int(trash_id)
+    except (ValueError, TypeError):
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Invalid Trash ID.'}), 400
+        flash("Invalid Trash ID.", "danger")
+        return redirect(redirect_to)
+
+    ok, err = restore_trashed_student(teacher_id, trash_id, new_roll_number)
+    if not ok:
+        if is_ajax:
+            return jsonify({'success': False, 'message': err, 'conflict': 'already in use' in (err or '').lower()}), 409 if 'already in use' in (err or '').lower() else 400
+        flash(err, "danger")
+        return redirect(redirect_to)
+
+    msg = "Student restored successfully! Active class enrollment and roll number have been updated."
+    if is_ajax:
+        return jsonify({'success': True, 'message': msg}), 200
+    flash(msg, "success")
+    return redirect(redirect_to)
+
+@app.route('/teacher/trash/delete-permanent', methods=['POST'])
+@teacher_login_required
+def teacher_trash_permanent_delete():
+    """Permanently deletes a trashed student record upon explicit confirmation."""
+    teacher_id = session['teacher_id']
+    is_ajax = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '')
+    data = request.get_json(silent=True) or request.form
+
+    trash_id = data.get('trash_id')
+    redirect_to = data.get('redirect_to') or url_for('teacher_trash')
+
+    if not trash_id:
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Trash ID is required.'}), 400
+        flash("Trash ID is required.", "danger")
+        return redirect(redirect_to)
+
+    try:
+        trash_id = int(trash_id)
+    except (ValueError, TypeError):
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Invalid Trash ID.'}), 400
+        flash("Invalid Trash ID.", "danger")
+        return redirect(redirect_to)
+
+    ok, err = permanently_delete_trashed_student(teacher_id, trash_id)
+    if not ok:
+        if is_ajax:
+            return jsonify({'success': False, 'message': err}), 403
+        flash(err, "danger")
+        return redirect(redirect_to)
+
+    msg = "Student record has been permanently deleted."
+    if is_ajax:
+        return jsonify({'success': True, 'message': msg}), 200
+    flash(msg, "success")
+    return redirect(redirect_to)
+
+
 @app.route('/api/assignment/<int:assignment_id>/submit', methods=['POST'])
 def api_submit_assignment(assignment_id):
     """
@@ -2024,8 +2147,8 @@ def verify_attendance_face():
     if not att_session or att_session['teacher_id'] != teacher_id or att_session['class_id'] != class_id:
         return jsonify({'success': False, 'request_id': req_id, 'status': 'error', 'message': 'Session not found or unauthorized.'}), 403
 
-    # Extract 128-d DCT feature vector from image frame with liveness validation
-    query_vector, liveness_err = FaceRecognitionService.extract_features(image_data, check_liveness=True)
+    # Extract multi-view DCT feature descriptor from image frame with liveness validation
+    query_vector, liveness_err = FaceRecognitionService.extract_face_descriptor(image_data)
     if liveness_err or query_vector is None:
         IoTAttendanceService.record_event('UNRECOGNIZED', error_detail=liveness_err or "Liveness failed")
         is_not_detected = 'not detected' in (liveness_err or '').lower() or 'no image' in (liveness_err or '').lower()
@@ -2106,7 +2229,8 @@ def verify_attendance_face():
 
     student_id = roster_student['student_id']
     student_name = roster_student['full_name']
-    roll_number = roster_student.get('roll_number') or match.get('roll_number', '')
+    raw_roll = roster_student.get('roll_number') or match.get('roll_number')
+    clean_roll = str(raw_roll).strip() if raw_roll else '—'
 
     # Duplicate Attendance Prevention for the same session
     if roster_student.get('attendance_status') == 'Present':
@@ -2114,7 +2238,7 @@ def verify_attendance_face():
             'DUPLICATE',
             student_id=student_id,
             student_name=student_name,
-            roll_number=roll_number
+            roll_number=clean_roll
         )
         return jsonify({
             'success': True,
@@ -2124,12 +2248,12 @@ def verify_attendance_face():
             'student': {
                 'id': student_id,
                 'name': student_name,
-                'roll_number': roll_number
+                'roll_number': clean_roll
             },
             'scan_time': roster_student.get('scan_time'),
             'subject_id': att_session.get('subject_id'),
             'subject_name': att_session.get('subject_name'),
-            'message': f'{student_name} ({roll_number}) attendance already recorded for this session.'
+            'message': f'{student_name} ({clean_roll}) attendance already recorded for this session.'
         }), 200
 
     scan_time = datetime.now().strftime('%I:%M:%S %p')
@@ -2153,7 +2277,7 @@ def verify_attendance_face():
         'VERIFIED',
         student_id=student_id,
         student_name=student_name,
-        roll_number=roll_number
+        roll_number=clean_roll
     )
 
     return jsonify({
@@ -2164,13 +2288,13 @@ def verify_attendance_face():
         'student': {
             'id': student_id,
             'name': student_name,
-            'roll_number': roll_number,
+            'roll_number': clean_roll,
             'similarity': round(min(99.5, 78.0 + ((similarity - FaceRecognitionService.SIMILARITY_THRESHOLD) / (1.0 - FaceRecognitionService.SIMILARITY_THRESHOLD)) * 21.5), 1) if similarity >= FaceRecognitionService.SIMILARITY_THRESHOLD else round(similarity * 100, 1)
         },
         'scan_time': scan_time,
         'subject_id': att_session.get('subject_id'),
         'subject_name': att_session.get('subject_name'),
-        'message': f'Student successfully recognized: {student_name} ({roll_number}). Attendance successfully recorded!'
+        'message': f'Student successfully recognized: {student_name} ({clean_roll}). Attendance successfully recorded!'
     }), 200
 
 @app.route('/teacher/attendance/update-record', methods=['POST'])
@@ -3620,6 +3744,14 @@ def esp32_heartbeat():
         auth_secret=auth_secret
     )
     return jsonify(resp_data), status_code
+
+@app.route('/teacher/iot')
+@teacher_login_required
+def teacher_iot():
+    """Renders the comprehensive ESP32 IoT Attendance Node integration dashboard."""
+    teacher_id = session['teacher_id']
+    teacher = find_teacher_by_id(teacher_id)
+    return render_template('teacher_iot.html', teacher=teacher)
 
 @app.route('/logout')
 def logout():

@@ -32,7 +32,7 @@ cand_rows = cur.fetchall()
 print(f"\nCandidates in class 12 from DB: {[c['full_name'] + ' (' + str(c['student_id']) + ')' for c in cand_rows]}")
 
 # Test matching Priyanka image against candidates
-priyanka_img_path = 'uploads/faces/student_1057_a8df9d3c.jpg'
+priyanka_img_path = 'uploads/faces/student_1057_ccb29df0.jpg'
 if os.path.exists(priyanka_img_path):
     with open(priyanka_img_path, 'rb') as f:
         img_bytes = f.read()
@@ -40,6 +40,24 @@ if os.path.exists(priyanka_img_path):
     print(f"\nExtracted Priyanka features: err={err}, vec_len={len(vec) if vec else 0}")
     match = FaceRecognitionService.match_face(vec, [dict(c) for c in cand_rows])
     print(f"Match result for Priyanka (1057): {match}")
+
+# Test matching Rajni image against candidates
+rajni_img_path = 'uploads/faces/student_1192_2e052690.jpg'
+if os.path.exists(rajni_img_path):
+    with open(rajni_img_path, 'rb') as f:
+        r_bytes = f.read()
+    vec_r, err_r = FaceRecognitionService.extract_features(r_bytes)
+    match_r = FaceRecognitionService.match_face(vec_r, [dict(c) for c in cand_rows])
+    print(f"Match result for Rajni (1192): {match_r}")
+
+# Test matching Suraj image against candidates
+suraj_img_path = 'uploads/faces/student_1269_0afe9266.jpg'
+if os.path.exists(suraj_img_path):
+    with open(suraj_img_path, 'rb') as f:
+        s_bytes = f.read()
+    vec_s, err_s = FaceRecognitionService.extract_features(s_bytes)
+    match_s = FaceRecognitionService.match_face(vec_s, [dict(c) for c in cand_rows])
+    print(f"Match result for Suraj (1269): {match_s}")
 
 # Test matching student_4 image if exists
 student_4_img = 'uploads/faces/student_4_58a9e3ca.jpg'

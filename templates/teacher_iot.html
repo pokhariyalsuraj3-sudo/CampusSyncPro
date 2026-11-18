@@ -1,0 +1,428 @@
+{% extends "base.html" %}
+
+{% block title %}ESP32 IoT Device Integration — CampusSync{% endblock %}
+
+{% block content %}
+<div class="dashboard-root">
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="dash-sidebar" aria-label="Main Navigation">
+    <div>
+      <div class="dash-sidebar-brand">
+        <div class="brand-icon">
+          <i class="bi bi-mortarboard-fill"></i>
+        </div>
+        <span class="brand-name">Campus Sync</span>
+        <div class="brand-tagline-sub">Connect &bull; Learn &bull; Grow</div>
+      </div>
+
+      <nav class="dash-nav">
+        <a href="{{ url_for('teacher_dashboard') }}" class="dash-nav-item">
+          <i class="bi bi-code-slash"></i>
+          <span>Generate Code</span>
+        </a>
+        <a href="{{ url_for('teacher_assignments') }}" class="dash-nav-item">
+          <i class="bi bi-journal-text"></i>
+          <span>Assignments</span>
+        </a>
+        <a href="{{ url_for('teacher_attendance') }}" class="dash-nav-item">
+          <i class="bi bi-people"></i>
+          <span>Attendance</span>
+        </a>
+        <a href="{{ url_for('teacher_tests') }}" class="dash-nav-item">
+          <i class="bi bi-pencil-square"></i>
+          <span>Test</span>
+        </a>
+        <a href="{{ url_for('teacher_timetable') }}" class="dash-nav-item">
+          <i class="bi bi-calendar3-week"></i>
+          <span>Time Table</span>
+        </a>
+        <a href="{{ url_for('teacher_notices') }}" class="dash-nav-item">
+          <i class="bi bi-megaphone"></i>
+          <span>Notice Board</span>
+        </a>
+        <a href="{{ url_for('teacher_fees') }}" class="dash-nav-item">
+          <i class="bi bi-currency-rupee"></i>
+          <span>Fees Structure</span>
+        </a>
+        <a href="{{ url_for('teacher_trash') }}" class="dash-nav-item">
+          <i class="bi bi-trash3"></i>
+          <span>Student Trash</span>
+        </a>
+        <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
+          <i class="bi bi-gear"></i>
+          <span>Settings</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="dash-sidebar-footer">
+      <div class="sidebar-illustration">
+        <svg viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 95C20 95 45 88 80 95C115 102 140 95 140 95V110C140 110 115 117 80 110C45 103 20 110 20 110V95Z" fill="#31226a" />
+          <path d="M20 85H140V95H20V85Z" fill="#e2dcf7" />
+          <path d="M30 65C30 65 52 58 80 65C108 72 130 65 130 65V82C130 82 108 89 80 82C52 75 30 82 30 82V65Z" fill="#4d3896" />
+          <path d="M30 55H130V65H30V55Z" fill="#f5f2fe" />
+          <path d="M40 38C40 38 60 32 80 38C100 44 120 38 120 38V53C120 53 100 59 80 53C60 47 40 53 40 53V38Z" fill="#8870d8" />
+        </svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <div class="dash-main">
+
+    <!-- TOP APP BAR -->
+    <header class="dash-topbar py-2 px-3 px-md-4">
+      <div class="d-flex align-items-center gap-2">
+        <h5 class="fw-bold mb-0 text-navy">
+          <i class="bi bi-cpu text-purple me-1"></i> ESP32 IoT Device Integration
+        </h5>
+      </div>
+
+      <div class="dash-user-pill">
+        <div class="dash-avatar" style="width: 36px; height: 36px; font-size: 0.95rem;">
+          {{ teacher['full_name'][:2]|upper if teacher else 'CS' }}
+        </div>
+        <div class="user-info-text">
+          <div class="user-name">{{ teacher['full_name'] if teacher else 'Faculty' }}</div>
+          <div class="user-role-badge">Faculty</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="dash-content-body p-3 p-md-4">
+
+      <!-- HERO BANNER -->
+      <section class="dash-hero-card mb-4">
+        <div class="dash-hero-content">
+          <div class="dash-hero-tag">
+            <i class="bi bi-broadcast me-1"></i> Hardware Telemetry
+          </div>
+          <h2 class="dash-hero-greeting">
+            ESP32 DevKit V1 <span class="teacher-highlight">Attendance Node</span>
+          </h2>
+          <p class="dash-hero-sub">
+            Real-time biometric attendance feedback via dedicated IoT microcontroller with dual-LED indication and buzzer feedback.
+          </p>
+        </div>
+        <div class="dash-hero-badge">
+          <div class="dash-hero-badge-cursive">
+            Green = Present &bull; Red = Absent &bull; Real Hardware &hearts;
+          </div>
+        </div>
+      </section>
+
+      <!-- TEST FEEDBACK ALERT -->
+      <div id="iot-page-test-feedback" class="alert alert-info py-2 px-3 small mb-3 d-none"></div>
+
+      <!-- MAIN TELEMETRY GRID -->
+      <div class="row g-3 mb-4">
+        <!-- Connectivity Card -->
+        <div class="col-12 col-lg-6">
+          <div class="card h-100 border-0 rounded-4 shadow-sm p-3 bg-white" style="border: 1px solid var(--card-border) !important;">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+              <span class="fw-bold text-navy"><i class="bi bi-wifi text-purple me-1"></i> Network &amp; Device Status</span>
+              <span id="page-esp32-status-pill" class="badge bg-secondary rounded-pill px-3 py-1">Checking...</span>
+            </div>
+
+            <table class="table table-sm table-borderless small mb-0" style="font-size: 0.82rem;">
+              <tbody>
+                <tr>
+                  <td class="text-muted py-2" style="width: 40%;">Hardware Target:</td>
+                  <td class="fw-medium text-navy py-2">ESP32 DevKit V1 (30-pin USB-C)</td>
+                </tr>
+                <tr>
+                  <td class="text-muted py-2">Node URL / IP:</td>
+                  <td class="fw-medium text-navy py-2 font-monospace" id="page-esp32-host">—</td>
+                </tr>
+                <tr>
+                  <td class="text-muted py-2">Wi-Fi Signal (RSSI):</td>
+                  <td class="fw-medium text-navy py-2" id="page-esp32-rssi">—</td>
+                </tr>
+                <tr>
+                  <td class="text-muted py-2">Last Heartbeat:</td>
+                  <td class="fw-medium text-navy py-2" id="page-esp32-last-seen">—</td>
+                </tr>
+                <tr>
+                  <td class="text-muted py-2">Status Details:</td>
+                  <td class="text-secondary py-2" id="page-esp32-msg">Loading connection status...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- GPIO Pinout Configuration -->
+        <div class="col-12 col-lg-6">
+          <div class="card h-100 border-0 rounded-4 shadow-sm p-3 bg-white" style="border: 1px solid var(--card-border) !important;">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+              <span class="fw-bold text-navy"><i class="bi bi-diagram-3 text-purple me-1"></i> Verified Physical GPIO Pinout</span>
+              <span class="badge bg-light text-muted border">Confirmed</span>
+            </div>
+
+            <ul class="list-unstyled small mb-0" style="font-size: 0.82rem;">
+              <li class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                <span><span class="badge bg-success me-2">GPIO 26</span> Green LED (Present Indicator)</span>
+                <span class="font-monospace text-muted">220&Omega; Resistor</span>
+              </li>
+              <li class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                <span><span class="badge bg-danger me-2">GPIO 27</span> Red LED (Absent Indicator)</span>
+                <span class="font-monospace text-muted">220&Omega; Resistor</span>
+              </li>
+              <li class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                <span><span class="badge bg-warning text-dark me-2">GPIO 25</span> Buzzer Signal / IO</span>
+                <span class="font-monospace text-muted">3.3V / GND (Active)</span>
+              </li>
+              <li class="d-flex align-items-center justify-content-between py-2">
+                <span class="text-muted">Behavior Rules:</span>
+                <span class="text-navy fw-medium">Present = Green ON (Silent) &bull; Absent = Red ON + Beep</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Live Reported Indicator States -->
+        <div class="col-12">
+          <div class="card border-0 rounded-4 shadow-sm p-3 bg-white" style="border: 1px solid var(--card-border) !important;">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <span class="fw-bold text-navy"><i class="bi bi-activity text-purple me-1"></i> Live Hardware Telemetry State</span>
+              <span class="badge bg-light text-muted border">Reported by ESP32 Service</span>
+            </div>
+
+            <div class="row g-3 text-center">
+              <div class="col-12 col-md-4">
+                <div class="p-3 rounded-3 border" style="background: #fbfaff;">
+                  <div class="small text-muted mb-2">Green LED (Present)</div>
+                  <span id="page-telemetry-led-green" class="badge bg-secondary fs-6 px-4 py-2">OFF</span>
+                  <div class="small text-muted mt-2">GPIO 26 &bull; Turns ON for 2.5s on verified Present</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="p-3 rounded-3 border" style="background: #fbfaff;">
+                  <div class="small text-muted mb-2">Red LED (Absent)</div>
+                  <span id="page-telemetry-led-red" class="badge bg-secondary fs-6 px-4 py-2">OFF</span>
+                  <div class="small text-muted mt-2">GPIO 27 &bull; Turns ON for 2.5s on manual Absent</div>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="p-3 rounded-3 border" style="background: #fbfaff;">
+                  <div class="small text-muted mb-2">Buzzer (Chirp / Beep)</div>
+                  <span id="page-telemetry-buzzer" class="badge bg-secondary fs-6 px-4 py-2">IDLE</span>
+                  <div class="small text-muted mt-2">GPIO 25 &bull; 1 short beep on Absent, Silent on Present</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Latest Dispatched Attendance Event -->
+        <div class="col-12">
+          <div class="card border-0 rounded-4 shadow-sm p-3 bg-white" style="border: 1px solid var(--card-border) !important;">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+              <span class="fw-bold text-navy"><i class="bi bi-clock-history text-purple me-1"></i> Latest Dispatched Attendance Event</span>
+              <span class="small text-muted">UUID Event Protection Active</span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-bordered mb-0 align-middle small">
+                <thead class="table-light">
+                  <tr>
+                    <th>Event Type</th>
+                    <th>Student Name</th>
+                    <th>Roll Number</th>
+                    <th>Timestamp</th>
+                    <th>Hardware Indication</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td id="page-event-type" class="fw-bold font-monospace">—</td>
+                    <td id="page-event-student">—</td>
+                    <td id="page-event-roll" class="font-monospace">—</td>
+                    <td id="page-event-time">—</td>
+                    <td id="page-event-action" class="text-muted">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnostic Actions Bar -->
+        <div class="col-12">
+          <div class="card border-0 rounded-4 shadow-sm p-3" style="background: #fbfaff; border: 1px solid var(--card-border) !important;">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div>
+                <h6 class="fw-bold text-navy mb-1"><i class="bi bi-tools text-purple me-1"></i> Hardware Self-Test Actions</h6>
+                <span class="small text-muted">Trigger verified test signals to validate physical LEDs and Buzzer.</span>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="testPageIoTFeedback('PRESENT')">
+                  <i class="bi bi-check-circle me-1"></i> Test Present (Green ON, Silent)
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="testPageIoTFeedback('ABSENT')">
+                  <i class="bi bi-x-circle me-1"></i> Test Absent (Red ON + Beep)
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="loadPageIoTStatus(true)">
+                  <i class="bi bi-arrow-clockwise me-1"></i> Refresh Status
+                </button>
+                <a href="{{ url_for('teacher_attendance') }}" class="btn btn-primary-purple btn-sm rounded-pill px-3">
+                  <i class="bi bi-camera-video me-1"></i> Back to Attendance
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  async function loadPageIoTStatus(forceRefresh = false) {
+    try {
+      const url = forceRefresh ? '{{ url_for("iot_attendance_status") }}?refresh=true' : '{{ url_for("iot_attendance_status") }}';
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      const conn = data.esp32_connection || {};
+      const statusPill = document.getElementById('page-esp32-status-pill');
+      const hostElem = document.getElementById('page-esp32-host');
+      const rssiElem = document.getElementById('page-esp32-rssi');
+      const lastSeenElem = document.getElementById('page-esp32-last-seen');
+      const msgElem = document.getElementById('page-esp32-msg');
+
+      if (statusPill) {
+        if (conn.status === 'connected') {
+          statusPill.className = 'badge bg-success rounded-pill px-3 py-1';
+          statusPill.textContent = 'Connected (Online)';
+        } else if (conn.status === 'disconnected') {
+          statusPill.className = 'badge bg-warning text-dark rounded-pill px-3 py-1';
+          statusPill.textContent = 'Disconnected (Offline)';
+        } else {
+          statusPill.className = 'badge bg-secondary rounded-pill px-3 py-1';
+          statusPill.textContent = 'Not Configured';
+        }
+      }
+
+      if (hostElem) hostElem.textContent = conn.host || '—';
+      if (rssiElem) {
+        const devInfo = conn.device_info || {};
+        rssiElem.textContent = devInfo.wifi_rssi ? `${devInfo.wifi_rssi} dBm` : (conn.status === 'connected' ? 'Normal' : '—');
+      }
+      if (lastSeenElem) {
+        const devInfo = conn.device_info || {};
+        if (devInfo.heartbeat_age_seconds !== undefined) {
+          lastSeenElem.textContent = `${devInfo.heartbeat_age_seconds}s ago`;
+        } else if (devInfo.heartbeat_timestamp) {
+          lastSeenElem.textContent = new Date(devInfo.heartbeat_timestamp).toLocaleTimeString();
+        } else if (conn.status === 'connected') {
+          lastSeenElem.textContent = 'Active now';
+        } else {
+          lastSeenElem.textContent = '—';
+        }
+      }
+      if (msgElem) msgElem.textContent = conn.message || 'ESP32 node ready';
+
+      // Update Live Telemetry
+      const ledGreenPill = document.getElementById('page-telemetry-led-green');
+      const ledRedPill = document.getElementById('page-telemetry-led-red');
+      const buzzerPill = document.getElementById('page-telemetry-buzzer');
+
+      if (ledGreenPill) {
+        const isGreen = data.led_green === 'ON';
+        ledGreenPill.className = isGreen ? 'badge bg-success fs-6 px-4 py-2' : 'badge bg-secondary fs-6 px-4 py-2';
+        ledGreenPill.textContent = isGreen ? 'ON' : 'OFF';
+      }
+      if (ledRedPill) {
+        const isRed = data.led_red === 'ON';
+        ledRedPill.className = isRed ? 'badge bg-danger fs-6 px-4 py-2' : 'badge bg-secondary fs-6 px-4 py-2';
+        ledRedPill.textContent = isRed ? 'ON' : 'OFF';
+      }
+      if (buzzerPill) {
+        const isBeep = data.buzzer === 'BEEP';
+        buzzerPill.className = isBeep ? 'badge bg-warning text-dark fs-6 px-4 py-2' : 'badge bg-secondary fs-6 px-4 py-2';
+        buzzerPill.textContent = isBeep ? 'BEEP' : 'IDLE';
+      }
+
+      // Update Latest Attendance Event
+      const evType = document.getElementById('page-event-type');
+      const evStudent = document.getElementById('page-event-student');
+      const evRoll = document.getElementById('page-event-roll');
+      const evTime = document.getElementById('page-event-time');
+      const evAction = document.getElementById('page-event-action');
+
+      if (evType) {
+        evType.textContent = data.event || data.last_event || 'IDLE';
+        if (data.event === 'VERIFIED' || data.event === 'PRESENT') {
+          evType.className = 'fw-bold text-success font-monospace';
+        } else if (data.event === 'ABSENT') {
+          evType.className = 'fw-bold text-danger font-monospace';
+        } else {
+          evType.className = 'fw-bold text-muted font-monospace';
+        }
+      }
+      if (evStudent) evStudent.textContent = data.student_name || '—';
+      if (evRoll) evRoll.textContent = data.roll_number || '—';
+      if (evTime) evTime.textContent = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '—';
+      if (evAction) {
+        if (data.event === 'VERIFIED' || data.event === 'PRESENT') {
+          evAction.textContent = 'Green LED ON (Buzzer Silent)';
+        } else if (data.event === 'ABSENT') {
+          evAction.textContent = 'Red LED ON + Buzzer Beep';
+        } else {
+          evAction.textContent = 'Idle (All OFF)';
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading IoT page status:', e);
+    }
+  }
+
+  async function testPageIoTFeedback(eventType) {
+    const feedbackBox = document.getElementById('iot-page-test-feedback');
+    if (feedbackBox) {
+      feedbackBox.className = 'alert alert-info py-2 px-3 small mb-3';
+      feedbackBox.textContent = `Dispatching test ${eventType} event to ESP32 node...`;
+      feedbackBox.classList.remove('d-none');
+    }
+
+    try {
+      const resp = await fetch('{{ url_for("iot_event_ping") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: eventType,
+          detail: 'Manual Dashboard Self-Test'
+        })
+      });
+      const data = await resp.json();
+      if (feedbackBox) {
+        if (data.success) {
+          feedbackBox.className = 'alert alert-success py-2 px-3 small mb-3';
+          feedbackBox.textContent = `Success: Test ${eventType} signal dispatched! Check physical node LEDs and Buzzer.`;
+          setTimeout(() => loadPageIoTStatus(true), 250);
+        } else {
+          feedbackBox.className = 'alert alert-warning py-2 px-3 small mb-3';
+          feedbackBox.textContent = `Warning: ${data.message || 'Event could not be delivered'}`;
+        }
+      }
+    } catch (e) {
+      if (feedbackBox) {
+        feedbackBox.className = 'alert alert-danger py-2 px-3 small mb-3';
+        feedbackBox.textContent = `Communication Error: ${e.message}`;
+      }
+    }
+  }
+
+  // Initial load and periodic refresh every 10s
+  loadPageIoTStatus();
+  setInterval(() => loadPageIoTStatus(false), 10000);
+</script>
+{% endblock %}

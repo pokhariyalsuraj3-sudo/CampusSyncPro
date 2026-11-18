@@ -110,11 +110,12 @@ class TestESP32IoTIntegration(unittest.TestCase):
         self.assertEqual(status['status'], 'not_configured')
         self.assertFalse(status['configured'])
 
-        # Recording event should succeed instantly
+        # Recording event should succeed instantly (Present: Green LED ON, Buzzer Silent)
         event = IoTAttendanceService.record_event('VERIFIED', student_id=8, student_name="Priyanka Saini", roll_number="CS-101")
         self.assertEqual(event['event'], 'VERIFIED')
         self.assertEqual(event['led'], 'GREEN')
-        self.assertEqual(event['buzzer_beeps'], 1)
+        self.assertEqual(event['buzzer_beeps'], 0)
+        self.assertEqual(event['buzzer'], 'IDLE')
 
         # No network calls to mock server should have occurred
         time.sleep(0.1)
@@ -261,8 +262,40 @@ class TestESP32IoTIntegration(unittest.TestCase):
         MockESP32Handler.events_received.clear()
         event = IoTAttendanceService.record_event('UNRECOGNIZED', error_detail="Low cosine similarity")
         self.assertEqual(event['event'], 'UNRECOGNIZED')
+        self.assertEqual(event['led'], 'RED')
+        self.assertEqual(event['led_red'], 'ON')
+        self.assertEqual(event['led_green'], 'OFF')
+        self.assertEqual(event['buzzer'], 'IDLE')
+        self.assertEqual(event['buzzer_beeps'], 0)
         time.sleep(0.1)
         self.assertEqual(len(MockESP32Handler.events_received), 0, "Hardware must NOT receive any event on unrecognized")
+
+    def test_12_present_event_buzzer_is_silent(self):
+        """Verified / Present attendance triggers Green LED ON and Buzzer strictly SILENT per Section 3."""
+        event = IoTAttendanceService.record_event('VERIFIED', student_id=1057, student_name="Priyanka Saini", roll_number="19")
+        self.assertEqual(event['led'], 'GREEN')
+        self.assertEqual(event['led_green'], 'ON')
+        self.assertEqual(event['led_red'], 'OFF')
+        self.assertEqual(event['buzzer'], 'IDLE')
+        self.assertEqual(event['buzzer_beeps'], 0)
+
+    def test_13_teacher_iot_dashboard_route_and_template(self):
+        """Teacher IoT dashboard renders with live telemetry, pinout, and testing controls."""
+        import app
+        with app.app.test_client() as client:
+            with client.session_transaction() as sess:
+                sess['teacher_id'] = 5
+                sess['user_type'] = 'teacher'
+                sess['teacher_name'] = 'Rajesh Lohani'
+                sess['role'] = 'teacher'
+            resp = client.get('/teacher/iot')
+            self.assertEqual(resp.status_code, 200)
+            html = resp.get_data(as_text=True)
+            self.assertIn('ESP32 IoT Device Integration', html)
+            self.assertIn('GPIO 26', html)
+            self.assertIn('GPIO 27', html)
+            self.assertIn('GPIO 25', html)
+            self.assertIn('Hardware Self-Test Actions', html)
 
 if __name__ == '__main__':
     unittest.main()

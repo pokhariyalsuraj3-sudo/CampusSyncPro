@@ -372,9 +372,11 @@ class NumberedCanvas(canvas.Canvas):
 
         # Running header on page 2 and beyond
         if self._pageNumber > 1:
-            header_y = 595.27 - 18
+            header_y = 595.27 - 16
             self.drawString(24, header_y, "CampusSync — Overall Attendance Register")
             self.drawRightString(841.89 - 24, header_y, "Confidential • Internal Academic Record")
+            self.setStrokeColor(colors.HexColor("#CBD5E1"))
+            self.setLineWidth(0.5)
             self.line(24, header_y - 4, 841.89 - 24, header_y - 4)
 
         self.restoreState()
@@ -395,13 +397,14 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
     gen_time_str = datetime.now().strftime('%d-%b-%Y %I:%M %p')
 
     # Page Geometry: Landscape A4 is 841.89 x 595.27 points
+    # Printable area: 841.89 - 48 = 793.89 pt horizontally; 595.27 - (36 + 32) = 527.27 pt vertically
     doc = SimpleDocTemplate(
         buffer,
         pagesize=landscape(A4),
         leftMargin=24,
         rightMargin=24,
-        topMargin=24,
-        bottomMargin=28
+        topMargin=36,
+        bottomMargin=32
     )
 
     styles = getSampleStyleSheet()
@@ -490,7 +493,7 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
         Paragraph(f"Class Average: <b>{avg_pct}%</b>", kpi_style),
         Paragraph("Legend: <font color='#15803D'><b>P</b></font>=Present &nbsp; <font color='#B91C1C'><b>A</b></font>=Absent &nbsp; <font color='#94A3B8'><b>—</b></font>=No Session", kpi_style)
     ]]
-    kpi_table = Table(kpi_data, colWidths=[120, 120, 130, 130, 110, 183.89])
+    kpi_table = Table(kpi_data, colWidths=[95, 95, 105, 105, 95, 298.89])
     kpi_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F6F3FC')),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
@@ -499,27 +502,28 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
         ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2DCF7'))
     ]))
     story.append(kpi_table)
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 5))
 
     # 3. Main Attendance Matrix Table
     # Printable area: 841.89 - 48 = 793.89 pt
     num_days = len(days)
     col_idx_w = 16
-    col_roll_w = 64
-    col_name_w = 118
-    col_p_w = 26
-    col_a_w = 26
+    col_roll_w = 62
+    col_name_w = 116
+    col_p_w = 25
+    col_a_w = 25
     col_pct_w = 34
     fixed_total_w = col_idx_w + col_roll_w + col_name_w + col_p_w + col_a_w + col_pct_w
     avail_for_days = 793.89 - fixed_total_w
-    day_w = max(13.0, avail_for_days / num_days)
+    day_w = round(avail_for_days / num_days, 2)
+    day_widths = [day_w] * (num_days - 1) + [round(avail_for_days - day_w * (num_days - 1), 2)]
 
-    col_widths = [col_idx_w, col_roll_w, col_name_w] + [day_w] * num_days + [col_p_w, col_a_w, col_pct_w]
+    col_widths = [col_idx_w, col_roll_w, col_name_w] + day_widths + [col_p_w, col_a_w, col_pct_w]
 
-    th_main_style = ParagraphStyle('THM', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=6.5, leading=8, alignment=1, textColor=colors.white)
-    th_sub_style  = ParagraphStyle('THS', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=5.5, leading=7, alignment=1, textColor=colors.HexColor('#1F1841'))
-    td_text_style = ParagraphStyle('TDT', parent=styles['Normal'], fontName='Helvetica', fontSize=6.5, leading=8, alignment=0, textColor=colors.HexColor('#1E293B'))
-    td_roll_style = ParagraphStyle('TDR', parent=styles['Normal'], fontName='Helvetica', fontSize=6.0, leading=7, alignment=0, textColor=colors.HexColor('#0F172A'))
+    th_main_style = ParagraphStyle('THM', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=6.0, leading=7.0, alignment=1, textColor=colors.white)
+    th_sub_style  = ParagraphStyle('THS', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=5.5, leading=6.5, alignment=1, textColor=colors.HexColor('#1F1841'))
+    td_text_style = ParagraphStyle('TDT', parent=styles['Normal'], fontName='Helvetica', fontSize=6.2, leading=7.2, alignment=0, textColor=colors.HexColor('#1E293B'))
+    td_roll_style = ParagraphStyle('TDR', parent=styles['Normal'], fontName='Helvetica', fontSize=5.8, leading=6.8, alignment=0, textColor=colors.HexColor('#0F172A'))
 
     # Header Row 1: Day numbers
     row1 = [
@@ -547,11 +551,11 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
     # Data Rows
     for idx, st in enumerate(students, start=1):
         s_name = st.get('full_name') or "Unknown Student"
-        if len(s_name) > 24:
-            s_name = s_name[:22] + "…"
+        if len(s_name) > 30:
+            s_name = s_name[:28] + "…"
         s_roll = st.get('roll_number') or "—"
-        if len(s_roll) > 13:
-            s_roll = s_roll[:11] + "…"
+        if len(s_roll) > 16:
+            s_roll = s_roll[:14] + "…"
 
         row = [
             str(idx),
@@ -582,8 +586,8 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
         ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#ECE7FB')),
         ('ALIGN', (0, 0), (-1, 1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 1.5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1.5),
         ('LEFTPADDING', (0, 0), (-1, -1), 1),
         ('RIGHTPADDING', (0, 0), (-1, -1), 1),
         ('INNERGRID', (0, 0), (-1, -1), 0.35, colors.HexColor('#CBD5E1')),
@@ -595,7 +599,7 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
         ('SPAN', (-2, 0), (-2, 1)), # Span A
         ('SPAN', (-1, 0), (-1, 1)), # Span %
         ('FONTNAME', (0, 2), (0, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 2), (-1, -1), 6.5),
+        ('FONTSIZE', (0, 2), (-1, -1), 6.0),
         ('ALIGN', (0, 2), (0, -1), 'CENTER'),
         ('ALIGN', (3, 2), (-1, -1), 'CENTER'),
         ('BACKGROUND', (-3, 2), (-3, -1), colors.HexColor('#F0FDF4')),
@@ -628,7 +632,8 @@ def generate_attendance_pdf(class_info, subject_info, year, month, days, session
             else:
                 table_style.append(('TEXTCOLOR', (c_idx, r_idx), (c_idx, r_idx), colors.HexColor('#94A3B8')))
 
-    main_table = Table(table_data, colWidths=col_widths, repeatRows=2)
+    row_heights = [15, 13] + [15] * len(students if students else [1])
+    main_table = Table(table_data, colWidths=col_widths, rowHeights=row_heights, repeatRows=2)
     main_table.setStyle(TableStyle(table_style))
     story.append(main_table)
 

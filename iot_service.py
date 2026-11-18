@@ -307,18 +307,21 @@ class IoTAttendanceService:
         Records an attendance verification event for simulation and dispatches to ESP32 if configured.
         event_type: 'VERIFIED', 'ABSENT', 'UNRECOGNIZED', 'DUPLICATE', 'SESSION_START', 'SESSION_END'
         """
-        # Determine simulation indicator states
-        if event_type == 'VERIFIED':
+        # Determine simulation indicator states per specification:
+        # PRESENT: Green LED ON, Red LED OFF, Buzzer SILENT
+        # ABSENT: Red LED ON, Green LED OFF, Buzzer 1 short beep
+        # IDLE / UNKNOWN / ERROR / DUPLICATE: Green LED OFF, Red LED OFF, Buzzer OFF
+        if event_type == 'VERIFIED' or event_type == 'PRESENT':
             led = 'GREEN'
-            beeps = 1
+            beeps = 0
         elif event_type == 'ABSENT':
             led = 'RED'
             beeps = 1
         elif event_type in ['UNRECOGNIZED', 'UNAUTHORIZED']:
             led = 'RED'
-            beeps = 2
+            beeps = 0
         elif event_type == 'DUPLICATE':
-            led = 'GREEN'
+            led = 'OFF'
             beeps = 0
         else:
             led = 'OFF'

@@ -45,6 +45,10 @@
           <i class="bi bi-currency-rupee"></i>
           <span>Fees Structure</span>
         </a>
+        <a href="{{ url_for('teacher_trash') }}" class="dash-nav-item">
+          <i class="bi bi-trash3"></i>
+          <span>Student Trash</span>
+        </a>
         <a href="{{ url_for('teacher_settings') }}" class="dash-nav-item">
           <i class="bi bi-gear"></i>
           <span>Settings</span>
@@ -144,7 +148,8 @@
           </a>
           <span id="esp32-header-badge"
             class="badge bg-white text-muted px-2 py-1 rounded-pill shadow-sm border small d-none d-lg-inline-block"
-            title="ESP32 IoT Node Connection Status">
+            style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#esp32DashboardModal"
+            title="ESP32 IoT Node Connection Status (Click for live Dashboard)">
             <i class="bi bi-cpu me-1"></i> ESP32: <span id="esp32-header-status-text">Not Configured</span>
           </span>
           <span
@@ -289,6 +294,10 @@
                 style="font-size: 0.8rem;" disabled>
                 <i class="bi bi-camera-video-off me-1"></i> Stop Camera
               </button>
+              <button type="button" id="btn-switch-camera" class="btn btn-outline-secondary btn-sm py-1 px-2 d-none"
+                style="font-size: 0.76rem;" title="Switch Camera">
+                <i class="bi bi-arrow-repeat me-1"></i> Switch Camera
+              </button>
               <button type="button" id="btn-toggle-speech" class="btn btn-sm btn-outline-purple py-1 px-2"
                 style="font-size: 0.76rem;" title="Voice announcement (Click to toggle)">
                 <i class="bi bi-volume-up-fill me-1" id="speech-icon"></i><span id="speech-btn-label">Voice: ON</span>
@@ -325,7 +334,13 @@
                 <span class="fw-bold text-navy d-flex align-items-center gap-1">
                   <i class="bi bi-cpu text-purple"></i> ESP32 IoT
                   <span id="esp32-connection-badge" class="badge rounded-pill bg-secondary ms-1 py-1 px-2"
-                    style="font-size: 0.65rem;" title="ESP32 hardware connection status">Not Configured</span>
+                    style="font-size: 0.65rem; cursor: pointer;"
+                    title="ESP32 hardware connection status (Click to open Dashboard)" data-bs-toggle="modal"
+                    data-bs-target="#esp32DashboardModal">Not Configured</span>
+                  <button type="button" class="btn btn-sm btn-link text-purple p-0 ms-1" data-bs-toggle="modal"
+                    data-bs-target="#esp32DashboardModal" title="Open ESP32 IoT Device Dashboard">
+                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.72rem;"></i>
+                  </button>
                 </span>
                 <div class="d-flex align-items-center gap-3">
                   <div>
@@ -663,6 +678,201 @@
         </div>
       </div>
 
+      <!-- ESP32 IoT Attendance Node Dashboard Modal -->
+      <div class="modal fade" id="esp32DashboardModal" tabindex="-1" aria-labelledby="esp32DashboardModalTitle"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom py-2 px-3"
+              style="background: linear-gradient(135deg, #fbfaff 0%, #f3eeff 100%);">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                  style="width: 34px; height: 34px; background: #ede8f5; color: var(--primary-purple);">
+                  <i class="bi bi-cpu-fill fs-5"></i>
+                </div>
+                <div>
+                  <h6 class="modal-title fw-bold text-navy mb-0" id="esp32DashboardModalTitle"
+                    style="font-size: 0.95rem;">
+                    ESP32 IoT Attendance Node Dashboard
+                  </h6>
+                  <span class="small text-muted" style="font-size: 0.72rem;">Hardware Telemetry &amp; Real-time
+                    Attendance Indication</span>
+                </div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-3">
+              <!-- Alert / Test feedback container -->
+              <div id="iot-test-feedback" class="alert alert-info py-1 px-2 small mb-3 d-none"></div>
+
+              <div class="row g-3">
+                <!-- Left: Hardware Connection & Network Status -->
+                <div class="col-12 col-md-6">
+                  <div class="card h-100 border-0 rounded-3 p-3"
+                    style="background: #fbfaff; border: 1px solid var(--card-border) !important;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="fw-bold text-navy small"><i class="bi bi-wifi text-purple me-1"></i> Node
+                        Connectivity</span>
+                      <span id="modal-esp32-status-pill" class="badge bg-secondary rounded-pill px-2 py-1"
+                        style="font-size: 0.7rem;">Checking...</span>
+                    </div>
+
+                    <table class="table table-sm table-borderless small mb-0" style="font-size: 0.76rem;">
+                      <tbody>
+                        <tr>
+                          <td class="text-muted py-1" style="width: 40%;">Board:</td>
+                          <td class="fw-medium text-navy py-1" id="modal-esp32-board">ESP32 DevKit V1 (30-pin USB-C)
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="text-muted py-1">Node IP / Host:</td>
+                          <td class="fw-medium text-navy py-1 font-monospace" id="modal-esp32-host">—</td>
+                        </tr>
+                        <tr>
+                          <td class="text-muted py-1">Wi-Fi Signal:</td>
+                          <td class="fw-medium text-navy py-1" id="modal-esp32-rssi">—</td>
+                        </tr>
+                        <tr>
+                          <td class="text-muted py-1">Last Heartbeat:</td>
+                          <td class="fw-medium text-navy py-1" id="modal-esp32-last-seen">—</td>
+                        </tr>
+                        <tr>
+                          <td class="text-muted py-1">Status Message:</td>
+                          <td class="text-secondary py-1" id="modal-esp32-msg">Loading connection status...</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Right: Verified GPIO Hardware Pinout -->
+                <div class="col-12 col-md-6">
+                  <div class="card h-100 border-0 rounded-3 p-3"
+                    style="background: #fbfaff; border: 1px solid var(--card-border) !important;">
+                    <span class="fw-bold text-navy small mb-2 d-block"><i class="bi bi-diagram-3 text-purple me-1"></i>
+                      Physical GPIO Pinout</span>
+                    <ul class="list-unstyled small mb-0" style="font-size: 0.76rem;">
+                      <li class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                        <span><span class="badge bg-success me-1">GPIO 26</span> Green LED (Present)</span>
+                        <span class="font-monospace text-muted">220&Omega; Resistor</span>
+                      </li>
+                      <li class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                        <span><span class="badge bg-danger me-1">GPIO 27</span> Red LED (Absent)</span>
+                        <span class="font-monospace text-muted">220&Omega; Resistor</span>
+                      </li>
+                      <li class="d-flex align-items-center justify-content-between py-1 border-bottom">
+                        <span><span class="badge bg-warning text-dark me-1">GPIO 25</span> Buzzer Signal / IO</span>
+                        <span class="font-monospace text-muted">3.3V / GND (Active)</span>
+                      </li>
+                      <li class="d-flex align-items-center justify-content-between py-1">
+                        <span class="text-muted">Behavior:</span>
+                        <span class="text-navy fw-medium">Present = Green ON (Silent) &bull; Absent = Red ON +
+                          Beep</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Live Hardware Telemetry State -->
+                <div class="col-12">
+                  <div class="card border-0 rounded-3 p-3 bg-white"
+                    style="border: 1px solid var(--card-border) !important;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="fw-bold text-navy small"><i class="bi bi-activity text-purple me-1"></i> Live
+                        Hardware Telemetry</span>
+                      <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Auto-refreshing</span>
+                    </div>
+
+                    <div class="row g-2 text-center">
+                      <div class="col-4">
+                        <div class="p-2 rounded-2 border" style="background: #fdfdfd;">
+                          <div class="small text-muted mb-1" style="font-size: 0.72rem;">Green LED (Present)</div>
+                          <span id="modal-telemetry-led-green" class="badge bg-secondary px-3 py-1">OFF</span>
+                        </div>
+                      </div>
+                      <div class="col-4">
+                        <div class="p-2 rounded-2 border" style="background: #fdfdfd;">
+                          <div class="small text-muted mb-1" style="font-size: 0.72rem;">Red LED (Absent)</div>
+                          <span id="modal-telemetry-led-red" class="badge bg-secondary px-3 py-1">OFF</span>
+                        </div>
+                      </div>
+                      <div class="col-4">
+                        <div class="p-2 rounded-2 border" style="background: #fdfdfd;">
+                          <div class="small text-muted mb-1" style="font-size: 0.72rem;">Buzzer State</div>
+                          <span id="modal-telemetry-buzzer" class="badge bg-secondary px-3 py-1">IDLE</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Latest Attendance Event Dispatched -->
+                <div class="col-12">
+                  <div class="card border-0 rounded-3 p-3 bg-white"
+                    style="border: 1px solid var(--card-border) !important;">
+                    <span class="fw-bold text-navy small mb-2 d-block"><i
+                        class="bi bi-clock-history text-purple me-1"></i> Latest Attendance Event Dispatched</span>
+                    <div class="table-responsive">
+                      <table class="table table-sm table-bordered mb-0 align-middle small" style="font-size: 0.75rem;">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Event</th>
+                            <th>Student Name</th>
+                            <th>Roll Number</th>
+                            <th>Timestamp</th>
+                            <th>Target State</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td id="modal-event-type" class="fw-bold font-monospace">—</td>
+                            <td id="modal-event-student">—</td>
+                            <td id="modal-event-roll" class="font-monospace">—</td>
+                            <td id="modal-event-time">—</td>
+                            <td id="modal-event-action" class="text-muted">—</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Interactive Diagnostic Controls -->
+              <div class="mt-3 p-2 rounded-3 border" style="background: #fbfaff;">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                  <span class="small fw-bold text-navy"><i class="bi bi-tools text-purple me-1"></i> Hardware Self-Test
+                    Actions:</span>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-success py-1 px-2" style="font-size: 0.75rem;"
+                      onclick="testIoTFeedback('PRESENT')">
+                      <i class="bi bi-check-circle me-1"></i> Test Present (Green ON, Silent)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size: 0.75rem;"
+                      onclick="testIoTFeedback('ABSENT')">
+                      <i class="bi bi-x-circle me-1"></i> Test Absent (Red ON + Beep)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;"
+                      onclick="refreshIoTModalStatus(true)">
+                      <i class="bi bi-arrow-clockwise me-1"></i> Refresh Status
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer border-top bg-light py-2 px-3">
+              <span class="small text-muted me-auto" style="font-size: 0.72rem;">
+                <i class="bi bi-shield-check text-success me-1"></i> Authenticated via X-ESP32-Secret
+              </span>
+              <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3"
+                data-bs-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 </div>
@@ -733,6 +943,8 @@
   // Voice announcement queue & duplicate prevention
   const speechQueue = [];
   let isSpeaking = false;
+  let activeUtterance = null;
+  let speechTimeout = null;
   const announcedAttendanceEvents = new Set();
 
   if (btnToggleSpeech) {
@@ -743,6 +955,11 @@
       if (!speechEnabled && ('speechSynthesis' in window)) {
         window.speechSynthesis.cancel();
         speechQueue.length = 0;
+        if (speechTimeout) {
+          clearTimeout(speechTimeout);
+          speechTimeout = null;
+        }
+        activeUtterance = null;
         isSpeaking = false;
       }
     });
@@ -772,7 +989,7 @@
       return;
     }
 
-    // Requirement 7: Sequential queue to prevent audio overlapping
+    // Sequential queue to prevent audio overlapping
     speechQueue.push(phrase);
     processSpeechQueue();
   }
@@ -790,7 +1007,12 @@
     isSpeaking = true;
 
     try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+
       const utterance = new SpeechSynthesisUtterance(nextPhrase);
+      activeUtterance = utterance; // Retain reference in memory to prevent GC bug in Chrome/Edge
       utterance.lang = 'en-US';
       utterance.rate = 0.95; // Suitable, clear speaking speed
       utterance.pitch = 1.0;
@@ -805,21 +1027,40 @@
         }
       }
 
-      utterance.onend = () => {
+      const finishSpeech = () => {
+        if (speechTimeout) {
+          clearTimeout(speechTimeout);
+          speechTimeout = null;
+        }
+        activeUtterance = null;
         isSpeaking = false;
         // Pacing: 120ms cadence between sequential student names
         setTimeout(processSpeechQueue, 120);
       };
 
+      utterance.onend = finishSpeech;
+
       utterance.onerror = (e) => {
         console.warn('Speech synthesis error:', e);
-        isSpeaking = false;
-        setTimeout(processSpeechQueue, 80);
+        finishSpeech();
       };
+
+      // Safety watchdog: clear hung utterance after 4.5 seconds so speech queue is never blocked
+      speechTimeout = setTimeout(() => {
+        if (isSpeaking) {
+          console.warn('Speech synthesis watchdog timeout cleared hanging utterance');
+          finishSpeech();
+        }
+      }, 4500);
 
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.warn('Speech synthesis invocation exception:', e);
+      if (speechTimeout) {
+        clearTimeout(speechTimeout);
+        speechTimeout = null;
+      }
+      activeUtterance = null;
       isSpeaking = false;
       setTimeout(processSpeechQueue, 50);
     }
@@ -831,16 +1072,43 @@
     };
   }
 
+  // ==========================================
+  // WEBCAM CAMERA LIFECYCLE MANAGEMENT
+  // ==========================================
+
   // Start Camera
   async function startCamera() {
-    cameraAlert.style.display = 'none';
+    if (cameraAlert) cameraAlert.style.display = 'none';
+
+    // Stop existing stream if any
+    if (videoStream) {
+      try {
+        videoStream.getTracks().forEach(track => track.stop());
+      } catch (e) { }
+      videoStream = null;
+    }
+    if (videoElem) {
+      videoElem.srcObject = null;
+    }
+
     try {
-      videoStream = await navigator.mediaDevices.getUserMedia({
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Webcam API is not supported in this browser or requires HTTPS / localhost.');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
         audio: false
       });
-      videoElem.srcObject = videoStream;
-      await videoElem.play();
+
+      videoStream = stream;
+      videoElem.srcObject = stream;
+      videoElem.style.display = 'block';
+      try {
+        await videoElem.play();
+      } catch (playErr) {
+        console.warn('Video play notice:', playErr);
+      }
 
       cameraOffPlaceholder.style.display = 'none';
       cameraContainer.classList.add('scanning-active');
@@ -850,23 +1118,44 @@
       scanIndicatorBadge.style.fontSize = '0.72rem';
       scanIndicatorBadge.innerHTML = '<i class="bi bi-record-circle me-1"></i> Live Scanning';
 
+      recognitionCard.className = 'recognition-status-card mb-2';
+      recognitionMessage.textContent = 'Camera active. Position face inside frame.';
+      recognitionSubtext.textContent = 'Automatic face verification is running...';
+      livenessBadge.className = 'badge bg-light text-muted border';
+      livenessBadge.style.fontSize = '0.7rem';
+      livenessBadge.innerHTML = '<i class="bi bi-shield"></i> Ready';
+
       isScanning = true;
       startFaceScanningLoop();
     } catch (err) {
       console.error('Webcam access error:', err);
-      cameraAlert.style.display = 'block';
+      if (videoStream) {
+        try { videoStream.getTracks().forEach(track => track.stop()); } catch (e) { }
+        videoStream = null;
+      }
+      if (videoElem) videoElem.srcObject = null;
+
+      if (cameraAlert) cameraAlert.style.display = 'block';
       let errText = 'Camera not available. No webcam detected or device is in use.';
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         errText = 'Camera permission denied. Please allow camera access in your browser to scan attendance.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errText = 'Camera not available. No webcam detected on your device.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errText = 'Camera is currently in use by another application or tab.';
       } else if (err.message) {
         errText = 'Camera access error: ' + err.message;
       }
-      cameraAlertText.textContent = errText;
+
+      if (cameraAlertText) cameraAlertText.textContent = errText;
       scanIndicatorBadge.className = 'badge rounded-pill bg-danger';
       scanIndicatorBadge.style.fontSize = '0.72rem';
       scanIndicatorBadge.textContent = 'Camera Unavailable';
+
+      btnStartCamera.disabled = false;
+      btnStopCamera.disabled = true;
+      cameraOffPlaceholder.style.display = 'block';
+      cameraContainer.classList.remove('scanning-active');
 
       recognitionCard.className = 'recognition-status-card mb-2';
       recognitionMessage.innerHTML = `<i class="bi bi-camera-video-off text-danger me-1"></i> Camera Unavailable`;
@@ -884,10 +1173,15 @@
       scanInterval = null;
     }
     if (videoStream) {
-      videoStream.getTracks().forEach(track => track.stop());
+      try {
+        videoStream.getTracks().forEach(track => track.stop());
+      } catch (e) { }
       videoStream = null;
     }
-    videoElem.srcObject = null;
+    if (videoElem) {
+      videoElem.srcObject = null;
+    }
+
     cameraOffPlaceholder.style.display = 'block';
     cameraContainer.classList.remove('scanning-active');
     btnStartCamera.disabled = false;
@@ -916,7 +1210,7 @@
 
   async function captureAndVerifyFrame() {
     if (!isScanning || inFlight || !ACTIVE_SESSION_ID || !ACTIVE_CLASS_ID) return;
-    if (videoElem.readyState !== 4) return;
+    if (!videoElem || videoElem.readyState < 2 || !videoElem.videoWidth || !videoElem.videoHeight) return;
 
     latestDispatchedFrameId++;
     const currentFrameId = latestDispatchedFrameId;
@@ -956,8 +1250,9 @@
     if (res.status === 'verified') {
       cameraGuide.className = 'attendance-overlay-guide guide-verified';
       recognitionCard.className = 'recognition-status-card status-verified mb-2';
+      const rollText = (res.student.roll_number && res.student.roll_number !== 'None') ? res.student.roll_number : '—';
       recognitionMessage.innerHTML = `<i class="bi bi-check-circle-fill text-success me-1"></i> Student Successfully Recognized: ${res.student.name}`;
-      recognitionSubtext.textContent = `Roll No: ${res.student.roll_number} &bull; Attendance successfully recorded!`;
+      recognitionSubtext.innerHTML = `Roll No: <strong>${rollText}</strong> &bull; Attendance successfully recorded!`;
       livenessBadge.className = 'badge bg-success-subtle text-success border border-success-subtle';
       livenessBadge.style.fontSize = '0.7rem';
       livenessBadge.innerHTML = '<i class="bi bi-shield-check"></i> Real Face Verified';
@@ -969,10 +1264,11 @@
       setRowStatus(res.student.id, 'Present', 'Face', res.scan_time);
 
     } else if (res.status === 'duplicate') {
+      const rollText = (res.student.roll_number && res.student.roll_number !== 'None') ? res.student.roll_number : '—';
       cameraGuide.className = 'attendance-overlay-guide';
       recognitionCard.className = 'recognition-status-card status-duplicate mb-2';
       recognitionMessage.innerHTML = `<i class="bi bi-info-circle-fill text-primary me-1"></i> ${res.student.name}`;
-      recognitionSubtext.textContent = `Attendance already recorded (${res.student.roll_number})`;
+      recognitionSubtext.textContent = `Attendance already recorded (Roll: ${rollText})`;
       livenessBadge.className = 'badge bg-primary-subtle text-primary border';
       livenessBadge.style.fontSize = '0.7rem';
       livenessBadge.innerHTML = '<i class="bi bi-check2-circle"></i> Already Verified';
@@ -1054,7 +1350,7 @@
       if (res.success) {
         setRowStatus(studentId, newStatus, 'Manual', null);
         const studentName = res.student_name || getStudentNameFromRow(studentId);
-        // Announce attendance after successful database persistence and trigger indicators
+        // Announce attendnce after successful database persistence and trigger indicators
         if (newStatus === 'Absent') {
           announceAttendance(studentName, 'Absent', studentId);
           triggerIoTIndicators('ABSENT');
@@ -1067,8 +1363,15 @@
       }
     } catch (e) {
       console.error('Update error:', e);
+      alert('Error updating attendance: ' + (e.message || e));
     }
   }
+
+  // Explicit window exposure for inline HTML event handlers
+  window.updateStudentAttendance = updateStudentAttendance;
+  window.announceAttendance = announceAttendance;
+  window.startCamera = startCamera;
+  window.stopCamera = stopCamera;
 
   function getStudentNameFromRow(studentId) {
     const row = document.getElementById(`row-student-${studentId}`);
@@ -1453,5 +1756,153 @@
   // Poll status on load and periodically (every 15s)
   checkEsp32Status();
   setInterval(checkEsp32Status, 15000);
+
+  // ==========================================
+  // ESP32 DASHBOARD MODAL TELEMETRY & ACTIONS
+  // ==========================================
+  async function refreshIoTModalStatus(forceRefresh = false) {
+    try {
+      const url = forceRefresh ? '{{ url_for("iot_attendance_status") }}?refresh=true' : '{{ url_for("iot_attendance_status") }}';
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      const conn = data.esp32_connection || {};
+      const statusPill = document.getElementById('modal-esp32-status-pill');
+      const hostElem = document.getElementById('modal-esp32-host');
+      const rssiElem = document.getElementById('modal-esp32-rssi');
+      const lastSeenElem = document.getElementById('modal-esp32-last-seen');
+      const msgElem = document.getElementById('modal-esp32-msg');
+
+      if (statusPill) {
+        if (conn.status === 'connected') {
+          statusPill.className = 'badge bg-success rounded-pill px-2 py-1';
+          statusPill.textContent = 'Connected (Online)';
+        } else if (conn.status === 'disconnected') {
+          statusPill.className = 'badge bg-warning text-dark rounded-pill px-2 py-1';
+          statusPill.textContent = 'Disconnected (Offline)';
+        } else {
+          statusPill.className = 'badge bg-secondary rounded-pill px-2 py-1';
+          statusPill.textContent = 'Not Configured';
+        }
+      }
+
+      if (hostElem) hostElem.textContent = conn.host || '—';
+      if (rssiElem) {
+        const devInfo = conn.device_info || {};
+        rssiElem.textContent = devInfo.wifi_rssi ? `${devInfo.wifi_rssi} dBm` : (conn.status === 'connected' ? 'Normal' : '—');
+      }
+      if (lastSeenElem) {
+        const devInfo = conn.device_info || {};
+        if (devInfo.heartbeat_age_seconds !== undefined) {
+          lastSeenElem.textContent = `${devInfo.heartbeat_age_seconds}s ago`;
+        } else if (devInfo.heartbeat_timestamp) {
+          lastSeenElem.textContent = new Date(devInfo.heartbeat_timestamp).toLocaleTimeString();
+        } else if (conn.status === 'connected') {
+          lastSeenElem.textContent = 'Active now';
+        } else {
+          lastSeenElem.textContent = '—';
+        }
+      }
+      if (msgElem) msgElem.textContent = conn.message || 'ESP32 node ready';
+
+      // Update Live Hardware Telemetry
+      const ledGreenPill = document.getElementById('modal-telemetry-led-green');
+      const ledRedPill = document.getElementById('modal-telemetry-led-red');
+      const buzzerPill = document.getElementById('modal-telemetry-buzzer');
+
+      if (ledGreenPill) {
+        const isGreen = data.led_green === 'ON';
+        ledGreenPill.className = isGreen ? 'badge bg-success px-3 py-1' : 'badge bg-secondary px-3 py-1';
+        ledGreenPill.textContent = isGreen ? 'ON' : 'OFF';
+      }
+      if (ledRedPill) {
+        const isRed = data.led_red === 'ON';
+        ledRedPill.className = isRed ? 'badge bg-danger px-3 py-1' : 'badge bg-secondary px-3 py-1';
+        ledRedPill.textContent = isRed ? 'ON' : 'OFF';
+      }
+      if (buzzerPill) {
+        const isBeep = data.buzzer === 'BEEP';
+        buzzerPill.className = isBeep ? 'badge bg-warning text-dark px-3 py-1' : 'badge bg-secondary px-3 py-1';
+        buzzerPill.textContent = isBeep ? 'BEEP' : 'IDLE';
+      }
+
+      // Update Latest Attendance Event
+      const evType = document.getElementById('modal-event-type');
+      const evStudent = document.getElementById('modal-event-student');
+      const evRoll = document.getElementById('modal-event-roll');
+      const evTime = document.getElementById('modal-event-time');
+      const evAction = document.getElementById('modal-event-action');
+
+      if (evType) {
+        evType.textContent = data.event || data.last_event || 'IDLE';
+        if (data.event === 'VERIFIED' || data.event === 'PRESENT') {
+          evType.className = 'fw-bold text-success font-monospace';
+        } else if (data.event === 'ABSENT') {
+          evType.className = 'fw-bold text-danger font-monospace';
+        } else {
+          evType.className = 'fw-bold text-muted font-monospace';
+        }
+      }
+      if (evStudent) evStudent.textContent = data.student_name || '—';
+      if (evRoll) evRoll.textContent = data.roll_number || '—';
+      if (evTime) evTime.textContent = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '—';
+      if (evAction) {
+        if (data.event === 'VERIFIED' || data.event === 'PRESENT') {
+          evAction.textContent = 'Green LED ON (Buzzer Silent)';
+        } else if (data.event === 'ABSENT') {
+          evAction.textContent = 'Red LED ON + Buzzer Beep';
+        } else {
+          evAction.textContent = 'Idle (All OFF)';
+        }
+      }
+    } catch (e) {
+      console.warn('Error refreshing IoT modal status:', e);
+    }
+  }
+
+  async function testIoTFeedback(eventType) {
+    const feedbackBox = document.getElementById('iot-test-feedback');
+    if (feedbackBox) {
+      feedbackBox.className = 'alert alert-info py-1 px-2 small mb-3';
+      feedbackBox.textContent = `Dispatching test ${eventType} event to ESP32 node...`;
+      feedbackBox.classList.remove('d-none');
+    }
+
+    try {
+      const resp = await fetch('{{ url_for("iot_event_ping") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: eventType,
+          detail: 'Manual Dashboard Self-Test'
+        })
+      });
+      const data = await resp.json();
+      if (feedbackBox) {
+        if (data.success) {
+          feedbackBox.className = 'alert alert-success py-1 px-2 small mb-3';
+          feedbackBox.textContent = `Success: Test ${eventType} signal dispatched! Check physical node LEDs and Buzzer.`;
+          triggerIoTIndicators(eventType);
+          setTimeout(() => refreshIoTModalStatus(true), 250);
+        } else {
+          feedbackBox.className = 'alert alert-warning py-1 px-2 small mb-3';
+          feedbackBox.textContent = `Warning: ${data.message || 'Event could not be delivered'}`;
+        }
+      }
+    } catch (e) {
+      if (feedbackBox) {
+        feedbackBox.className = 'alert alert-danger py-1 px-2 small mb-3';
+        feedbackBox.textContent = `Communication Error: ${e.message}`;
+      }
+    }
+  }
+
+  const iotModalElem = document.getElementById('esp32DashboardModal');
+  if (iotModalElem) {
+    iotModalElem.addEventListener('show.bs.modal', () => {
+      refreshIoTModalStatus(true);
+    });
+  }
 </script>
 {% endblock %}
